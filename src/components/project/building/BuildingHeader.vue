@@ -21,41 +21,22 @@
       </template>
     </v-text-field>
     <div class="d-flex align-center">
-      <building-modal
-        icon="mdi-plus"
-        tooltip="Add/Create"
-        transition="scroll-x-reverse-transition"
-      />
-      <building-modal
-        icon="mdi-pencil"
-        tooltip="Edit"
-        transition="scroll-x-reverse-transition"
-      />
-      <filter-modal
-        icon="mdi-filter-variant"
-        tooltip="Filter"
-        transition="scroll-x-reverse-transition"
-      />
-      <table-settings
-        icon="mdi-cog"
-        tooltip="Table Settings"
-        transition="scroll-x-reverse-transition"
-      />
-      <building-menu
-        icon="mdi-dots-vertical"
-        tooltip="More (Menu)"
-        transition="scroll-x-reverse-transition"
-      />
+      <create-and-edit icon="mdi-plus" tooltip="Add/Create" />
+      <create-and-edit icon="mdi-pencil" tooltip="Edit" />
+      <filters icon="mdi-filter-variant" tooltip="Filter" />
+      <table-settings icon="mdi-cog" tooltip="Table Settings" />
+      <building-menu icon="mdi-dots-vertical" tooltip="More (Menu)" />
     </div>
   </v-card>
 </template>
 
 <script>
 import HistoryTaskModal from "./header/HistoryTaskModal.vue";
-import BuildingModal from "./header/BuildingModal.vue";
-import FilterModal from "./header/FilterModal.vue";
+import CreateAndEdit from "./header/CreateAndEdit.vue";
+import Filters from "./header/Filters.vue";
 import TableSettings from "./header/TableSettings.vue";
 import BuildingMenu from "./header/BuildingMenu.vue";
+
 export default {
   data() {
     return {
@@ -64,8 +45,9 @@ export default {
   },
   components: {
     HistoryTaskModal,
-    BuildingModal,
-    FilterModal,
+    CreateAndEdit,
+    Filters,
+
     TableSettings,
     BuildingMenu,
   },

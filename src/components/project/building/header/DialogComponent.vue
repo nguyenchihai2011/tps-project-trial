@@ -2,13 +2,15 @@
   <v-dialog
     v-model="dialog"
     persistent
-    :transition="transition"
+    transition="scroll-x-reverse-transition"
     content-class="right-modal"
   >
     <template v-slot:activator="{ on, attrs }">
       <icon-button :on="on" :attrs="attrs" :icon="icon" :tooltip="tooltip" />
     </template>
-    <v-list-item height="48px">
+
+    <!-- Header dialog -->
+    <v-list-item height="48px" class="px-0">
       <v-list-item-title class="title">
         {{ tooltip }} Building
       </v-list-item-title>
@@ -18,17 +20,13 @@
       >
     </v-list-item>
 
-    <v-card-text
-      >Let Google help apps determine location. This means sending anonymous
-      location data to Google, even when no apps are running.</v-card-text
-    >
-    <v-card-actions>
-      <v-spacer></v-spacer>
-      <v-btn color="green darken-1" text @click="dialog = false">
-        Disagree
-      </v-btn>
-      <v-btn color="green darken-1" text @click="dialog = false"> Agree </v-btn>
-    </v-card-actions>
+    <v-divider></v-divider>
+    <!-- Content dialog -->
+    <div class="dialog__content"><slot name="content"></slot></div>
+
+    <v-divider></v-divider>
+    <!-- Footer dialog -->
+    <slot name="default"></slot>
   </v-dialog>
 </template>
 
@@ -42,10 +40,6 @@ export default {
   },
 
   props: {
-    transition: {
-      type: String,
-      required: true,
-    },
     icon: {
       type: String,
       required: true,
@@ -62,7 +56,7 @@ export default {
 };
 </script>
 
-<style scoped>
+<style>
 .right-modal {
   max-width: 500px !important;
   height: 100%;
@@ -76,5 +70,11 @@ export default {
 .right-modal .dialog__button {
   width: 36px !important;
   height: 36px !important;
+}
+
+.dialog__content {
+  height: calc(100vh - 110px);
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 </style>
