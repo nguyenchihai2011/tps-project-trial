@@ -8,11 +8,6 @@ const country = {
       ],
     };
   },
-  computed: {
-    getCountries: () => {
-      return this.country;
-    },
-  },
 };
 
 export default country;

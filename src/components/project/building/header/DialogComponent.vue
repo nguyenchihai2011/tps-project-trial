@@ -22,7 +22,7 @@
 
     <v-divider></v-divider>
     <!-- Content dialog -->
-    <div class="dialog__content"><slot name="content"></slot></div>
+    <slot name="content"></slot>
 
     <v-divider></v-divider>
     <!-- Footer dialog -->
@@ -70,11 +70,5 @@ export default {
 .right-modal .dialog__button {
   width: 36px !important;
   height: 36px !important;
-}
-
-.dialog__content {
-  height: calc(100vh - 110px);
-  overflow-y: auto;
-  overflow-x: hidden;
 }
 </style>

@@ -1,7 +1,7 @@
 <template>
   <dialog-component :icon="icon" :tooltip="tooltip" :building="building">
     <template slot="content">
-      <v-list>
+      <v-list class="content">
         <v-text-field v-model="building.name" label="Name*"></v-text-field>
         <v-select
           v-model="building.buildingType"
@@ -53,9 +53,6 @@ import { mapActions, mapGetters } from "vuex";
 import DialogComponent from "./DialogComponent.vue";
 import PrimaryButton from "@/components/buttons/PrimaryButton.vue";
 import axios from "axios";
-
-// Thiết lập cấu hình mặc định cho Axios
-// axios.defaults.headers.common["x-camelcase"] = 1;
 
 export default {
   data() {
@@ -109,13 +106,11 @@ export default {
     ...mapActions(["fetchAPIBuildingTypes"]),
     async handleCreateBuilding() {
       try {
-        console.log(this.building);
         const response = await axios.post("/api/buildings/", this.building, {
           headers: {
             "x-camelcase": 1,
           },
         });
-        console.log(response);
       } catch (err) {
         console.log(err);
       }
@@ -127,3 +122,11 @@ export default {
   },
 };
 </script>
+
+<style>
+.content {
+  height: calc(100vh - 110px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+</style>
