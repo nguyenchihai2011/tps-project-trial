@@ -12,7 +12,7 @@
     <!-- Header dialog -->
     <v-list-item height="48px" class="px-0">
       <v-list-item-title class="title">
-        {{ tooltip }} Building
+        {{ tooltip }}
       </v-list-item-title>
       <v-spacer></v-spacer>
       <v-btn class="dialog__button" depressed fab @click="dialog = !dialog"
@@ -20,7 +20,6 @@
       >
     </v-list-item>
 
-    <v-divider></v-divider>
     <!-- Content dialog -->
     <slot name="content"></slot>
 

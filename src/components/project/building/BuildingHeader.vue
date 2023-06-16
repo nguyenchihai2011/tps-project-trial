@@ -15,10 +15,8 @@
       hide-details
       dense
       solo
+      clearable
     >
-      <template v-slot:append>
-        <v-icon v-if="search !== ''" @click="search = ''">mdi-close</v-icon>
-      </template>
     </v-text-field>
     <div class="d-flex align-center">
       <create-and-edit icon="mdi-plus" tooltip="Add/Create" />

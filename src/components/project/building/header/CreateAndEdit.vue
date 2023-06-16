@@ -1,7 +1,8 @@
 <template>
   <dialog-component :icon="icon" :tooltip="tooltip" :building="building">
     <template slot="content">
-      <v-list class="content">
+      <v-divider></v-divider>
+      <v-list class="create-edit-content">
         <v-text-field v-model="building.name" label="Name*"></v-text-field>
         <v-select
           v-model="building.buildingType"
@@ -31,11 +32,16 @@
         >
       </v-list>
     </template>
+
     <template>
       <v-container class="px-0">
         <v-row>
           <v-col lg="6" class="pr-1"
-            ><primary-button text="Save And Create Another"></primary-button
+            ><primary-button
+              text="Save And Create Another"
+              :onCreate="handleCreateBuilding"
+              outlined
+            ></primary-button
           ></v-col>
           <v-col lg="6" class="pl-1">
             <primary-button text="Save" :onCreate="handleCreateBuilding">
@@ -124,7 +130,7 @@ export default {
 </script>
 
 <style>
-.content {
+.create-edit-content {
   height: calc(100vh - 110px);
   overflow-y: auto;
   overflow-x: hidden;

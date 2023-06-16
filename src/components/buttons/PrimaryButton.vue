@@ -4,7 +4,8 @@
     class="text-capitalize"
     :loading="loading4"
     :disabled="loading4"
-    color="info"
+    color="primary"
+    :outlined="outlined"
     @click="onCreate()"
   >
     {{ text }}
@@ -27,6 +28,9 @@ export default {
     },
     onCreate: {
       type: Function,
+    },
+    outlined: {
+      type: Boolean,
     },
   },
 
