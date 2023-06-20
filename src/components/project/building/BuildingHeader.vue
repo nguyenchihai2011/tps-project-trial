@@ -20,7 +20,12 @@
     </v-text-field>
     <div class="d-flex align-center">
       <create-and-edit icon="mdi-plus" tooltip="Add/Create" />
-      <create-and-edit icon="mdi-pencil" tooltip="Edit" />
+      <create-and-edit
+        icon="mdi-pencil"
+        tooltip="Edit"
+        :disabled="getSelectedBuildingLength != 1"
+        :buildingEdit="getSelectedBuilding[0]"
+      />
       <filters icon="mdi-filter-variant" tooltip="Filter" />
       <table-settings icon="mdi-cog" tooltip="Table Settings" />
       <building-menu icon="mdi-dots-vertical" tooltip="More (Menu)" />
@@ -34,6 +39,7 @@ import CreateAndEdit from "./header/CreateAndEdit.vue";
 import Filters from "./header/Filters.vue";
 import TableSettings from "./header/TableSettings.vue";
 import BuildingMenu from "./header/BuildingMenu.vue";
+import { mapGetters } from "vuex";
 
 export default {
   data() {
@@ -41,13 +47,17 @@ export default {
       search: "",
     };
   },
+
   components: {
     HistoryTaskModal,
     CreateAndEdit,
     Filters,
-
     TableSettings,
     BuildingMenu,
+  },
+
+  computed: {
+    ...mapGetters(["getSelectedBuildingLength", "getSelectedBuilding"]),
   },
 };
 </script>

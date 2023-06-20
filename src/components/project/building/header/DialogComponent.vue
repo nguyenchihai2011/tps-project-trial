@@ -6,7 +6,14 @@
     content-class="right-modal"
   >
     <template v-slot:activator="{ on, attrs }">
-      <icon-button :on="on" :attrs="attrs" :icon="icon" :tooltip="tooltip" />
+      <icon-button
+        :on="on"
+        :attrs="attrs"
+        :icon="icon"
+        :tooltip="tooltip"
+        :disabled="disabled"
+        :badge="badge"
+      />
     </template>
 
     <!-- Header dialog -->
@@ -46,6 +53,14 @@ export default {
     tooltip: {
       type: String,
       required: true,
+    },
+    disabled: {
+      type: Boolean,
+      default: false,
+    },
+    badge: {
+      type: Boolean,
+      default: false,
     },
   },
 

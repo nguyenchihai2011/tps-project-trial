@@ -1,12 +1,17 @@
 <template>
-  <dialog-component :icon="icon" :tooltip="tooltip" :building="building">
+  <dialog-component :icon="icon" :tooltip="tooltip" :disabled="disabled">
     <template slot="content">
       <v-divider></v-divider>
       <v-list class="create-edit-content">
-        <v-text-field v-model="building.name" label="Name*"></v-text-field>
+        <v-text-field
+          v-model="building.name"
+          :rules="rulesTextField"
+          label="Name*"
+        ></v-text-field>
         <v-select
           v-model="building.buildingType"
           :items="getBuildingTypes"
+          :rules="rulesTextField"
           label="Building Type*"
         ></v-select>
         <v-text-field label="Building ID"></v-text-field>
@@ -84,6 +89,7 @@ export default {
         state: "ACTIVE",
         notes: "",
       },
+      rulesTextField: [(v) => !!v || "This field is required."],
     };
   },
   props: {
@@ -94,6 +100,14 @@ export default {
     tooltip: {
       type: String,
       required: true,
+    },
+    disabled: {
+      type: Boolean,
+      default: false,
+    },
+
+    buildingEdit: {
+      type: Object,
     },
   },
 

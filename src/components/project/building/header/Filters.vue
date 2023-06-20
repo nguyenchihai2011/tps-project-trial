@@ -1,5 +1,5 @@
 <template>
-  <dialog-component :icon="icon" :tooltip="tooltip">
+  <dialog-component :icon="icon" :tooltip="tooltip" :badge="!!selectFilter">
     <template slot="content">
       <v-text-field
         prepend-inner-icon="mdi-magnify"
@@ -14,7 +14,13 @@
       <v-divider></v-divider>
       <v-expansion-panels accordion flat class="filter-content">
         <v-expansion-panel>
-          <v-expansion-panel-header>Building Type</v-expansion-panel-header>
+          <v-expansion-panel-header
+            ><label
+              ><v-icon v-if="!!selectFilter" color="green" left
+                >mdi-check</v-icon
+              >Building Type</label
+            ></v-expansion-panel-header
+          >
           <v-expansion-panel-content>
             <v-select
               v-model="selectFilter"
@@ -46,13 +52,13 @@
 </template>
 
 <script>
-import { mapGetters } from "vuex";
+import { mapActions, mapGetters, mapMutations } from "vuex";
 import DialogComponent from "./DialogComponent.vue";
 import PrimaryButton from "@/components/buttons/PrimaryButton.vue";
 export default {
   data() {
     return {
-      selectFilter: "",
+      selectFilter: this.$route.query.building_type || "",
     };
   },
   props: {
@@ -72,6 +78,32 @@ export default {
 
   computed: {
     ...mapGetters(["getBuildingTypes"]),
+  },
+
+  watch: {
+    selectFilter(newValue) {
+      this.fetchAPIBuildings({
+        sort: "name",
+        project: "75ea5a2e-e123-40df-a8c4-bf65386dba16",
+        state: ["ACTIVE", "INACTIVE", "REDACTED"],
+        building_type: newValue,
+      });
+      this.$router.push({
+        path: "/projects/75ea5a2e-e123-40df-a8c4-bf65386dba16/buildings",
+        query: {
+          page: this.$route.query.page,
+          pageSize: this.$route.query.pageSize,
+          sortBy: "name",
+          desc: false,
+          building_type: newValue,
+        },
+      });
+    },
+  },
+
+  methods: {
+    ...mapMutations(["setFilter"]),
+    ...mapActions(["fetchAPIBuildings"]),
   },
 };
 </script>

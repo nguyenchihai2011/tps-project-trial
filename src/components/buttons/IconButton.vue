@@ -5,10 +5,14 @@
         class="building__button"
         v-bind="{ ...attrs, attrsTooltip }"
         v-on="{ ...on, ...onTooltip }"
+        :disabled="disabled"
         depressed
         fab
       >
-        <v-icon> {{ icon }} </v-icon>
+        <v-badge dot overlap v-if="badge"
+          ><v-icon> {{ icon }} </v-icon></v-badge
+        >
+        <v-icon v-else> {{ icon }} </v-icon>
       </v-btn>
     </template>
     <span>{{ tooltip }}</span>
@@ -33,6 +37,14 @@ export default {
     tooltip: {
       type: String,
       required: true,
+    },
+    disabled: {
+      type: Boolean,
+      default: false,
+    },
+    badge: {
+      type: Boolean,
+      default: false,
     },
   },
 };
