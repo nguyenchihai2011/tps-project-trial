@@ -19,12 +19,12 @@
     >
     </v-text-field>
     <div class="d-flex align-center">
-      <create-and-edit icon="mdi-plus" tooltip="Add/Create" />
-      <create-and-edit
+      <create icon="mdi-plus" tooltip="Add/Create" />
+      <edit
         icon="mdi-pencil"
         tooltip="Edit"
+        type="Edit"
         :disabled="getSelectedBuildingLength != 1"
-        :buildingEdit="getSelectedBuilding[0]"
       />
       <filters icon="mdi-filter-variant" tooltip="Filter" />
       <table-settings icon="mdi-cog" tooltip="Table Settings" />
@@ -35,7 +35,8 @@
 
 <script>
 import HistoryTaskModal from "./header/HistoryTaskModal.vue";
-import CreateAndEdit from "./header/CreateAndEdit.vue";
+import Create from "./header/Create.vue";
+import Edit from "./header/Edit.vue";
 import Filters from "./header/Filters.vue";
 import TableSettings from "./header/TableSettings.vue";
 import BuildingMenu from "./header/BuildingMenu.vue";
@@ -50,7 +51,8 @@ export default {
 
   components: {
     HistoryTaskModal,
-    CreateAndEdit,
+    Create,
+    Edit,
     Filters,
     TableSettings,
     BuildingMenu,

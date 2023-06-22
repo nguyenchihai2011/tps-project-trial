@@ -6,7 +6,7 @@
     <v-card class="building__table">
       <building-data-table />
       <v-data-table
-        :headers="buildingsColumns"
+        :headers="usedColumns"
         :items="getBuildings"
         :items-per-page="itemsPerPage"
         :page="page"
@@ -15,33 +15,31 @@
         show-select
         v-model="selectedBuilding"
         fixed-header
-        class="custom-data-table"
+        :fixed-columns="2"
+        class="custom-data-table resize-table"
         :footer-props="{
           'items-per-page-options': [5, 10, 25, 50],
         }"
         ref="dataTable"
       >
-        <template v-slot:header="{ buildingsColumns }">
-          <thead>
-            <tr>
-              <!-- Custom header cell -->
-              <th v-for="header in buildingsColumns" :key="header.text">
-                <span class="custom-header">
-                  {{ header.text }}
-                </span>
-              </th>
-            </tr>
-          </thead>
+        <template
+          v-for="(column, index) in usedColumns"
+          v-slot:[`header.${column.value}`]="{ header }"
+        >
+          <span @click="handleSortBy(header)">
+            {{ header.text }}
+            <v-icon v-if="header.edit === 'true'">mdi-pencil</v-icon>
+          </span>
+          <div class="resize-handle" @mousedown="resizeMousedown"></div>
         </template>
-        <template v-slot:header.ref_id="{ header }">
-          <span>{{ header.value }} <v-icon>mdi-pencil</v-icon></span>
-        </template>
-        <template v-slot:header.building_type="{ header }">
-          <span>{{ header.value }} <v-icon>mdi-pencil</v-icon></span>
-        </template>
+
         <template v-slot:item.ref_id="{ item }">
           <td>
-            <v-edit-dialog :return-value.sync="item.ref_id" large>
+            <v-edit-dialog
+              :return-value="item.ref_id"
+              @open="copyData(item)"
+              @close="save(item)"
+            >
               {{ item.ref_id || "___" }}
               <template v-slot:input>
                 <v-text-field
@@ -54,7 +52,11 @@
         </template>
         <template v-slot:item.building_type="{ item }">
           <td>
-            <v-edit-dialog :return-value.sync="item.building_type" large>
+            <v-edit-dialog
+              :return-value="item.building_type"
+              @open="copyData(item)"
+              @close="save(item)"
+            >
               {{ item.building_type }}
               <template v-slot:input>
                 <v-select
@@ -62,9 +64,6 @@
                   :items="getBuildingTypes"
                   :menu-props="{ bottom: true, offsetY: true }"
                   label="Select a building type*"
-                  chips
-                  small-chips
-                  clearable
                 >
                 </v-select>
               </template>
@@ -156,6 +155,7 @@ import BuildingHeader from "@/components/project/building/BuildingHeader.vue";
 import BuildingDataTable from "@/components/project/building/BuildingDataTable.vue";
 import { mapActions, mapGetters, mapMutations } from "vuex";
 import axios from "axios";
+import columns from "@/mixins/columns.js";
 
 export default {
   data() {
@@ -167,6 +167,12 @@ export default {
       selectedBuilding: [],
       scrollShow: false,
       selectedBuildingType: "",
+      ref_id: "",
+      resizeInfo: {
+        pageX: Number,
+        curCol: null,
+        curColWidth: Number,
+      },
     };
   },
   components: {
@@ -182,13 +188,15 @@ export default {
     },
   },
 
+  mixins: [columns],
+
   computed: {
     ...mapGetters(["getBuildings", "getMetaBuildings", "getBuildingTypes"]),
   },
 
   watch: {
     selectedBuilding(newValue) {
-      this.setSelectedBuilding(newValue);
+      this.setSelectedBuilding(newValue.map((item) => item.id));
     },
     page(newValue) {
       this.fetchAPIBuildings({
@@ -231,7 +239,7 @@ export default {
   },
 
   methods: {
-    ...mapActions(["fetchAPIBuildings"]),
+    ...mapActions(["fetchAPIBuildings", "fetchAPIBuildingsFull"]),
     ...mapMutations(["setSelectedBuilding"]),
     async getBuildingsColumns() {
       try {
@@ -239,17 +247,8 @@ export default {
           "/api/org-members/63c7f081-ef87-4421-bc5e-ca4a9b891b6b/preferences/buildingsColumns/"
         );
         const data = response.data.value;
-        this.buildingsColumns = data.table_settings[
-          data.active_idx
-        ].columns.map((item, index) => {
-          return {
-            text: item,
-            value: item,
-            divider: true,
-            class: item,
-            resizable: true,
-          };
-        });
+
+        this.filterColumns(data.table_settings[data.active_idx].columns);
       } catch (err) {
         console.log(err);
       }
@@ -275,6 +274,165 @@ export default {
       const dataTable = this.$refs.dataTable.$el.querySelector("thead");
       dataTable.scrollIntoView({ top: 0, behavior: "smooth" });
     },
+
+    copyData(item) {
+      this.ref_id = item.ref_id;
+    },
+
+    async save(item) {
+      if (item.ref_id !== this.ref_id) {
+        try {
+          const response = await axios.patch(
+            `/api/buildings/${item.id}`,
+            { ref_id: item.ref_id },
+            {
+              headers: {
+                "x-camelcase": 1,
+              },
+            }
+          );
+          this.selectedBuildingType = "";
+          const query = this.$route.query;
+          this.fetchAPIBuildings({
+            page: query.page || 1,
+            page_size: query.pageSize || 50,
+            sortBy: query.sortBy || "name",
+            desc: query.desc || false,
+            building_type: query.building_type || "",
+          });
+        } catch (err) {
+          console.log(err);
+        }
+      } else if (this.selectedBuildingType) {
+        try {
+          const response = await axios.patch(
+            `/api/buildings/${item.id}`,
+            { building_type: this.selectedBuildingType },
+            {
+              headers: {
+                "x-camelcase": 1,
+              },
+            }
+          );
+          this.selectedBuildingType = "";
+          const query = this.$route.query;
+          this.fetchAPIBuildings({
+            page: query.page || 1,
+            page_size: query.pageSize || 50,
+            sortBy: query.sortBy || "name",
+            desc: query.desc || false,
+            building_type: query.building_type || "",
+          });
+        } catch (err) {
+          console.log(err);
+        }
+      }
+    },
+
+    handleSortBy(header) {
+      const query = this.$route.query;
+      let sortBy = "";
+      let desc = "";
+
+      if (query.desc == "" || query.desc == undefined) {
+        sortBy = header.sortBy;
+        desc = false;
+      } else if (query.desc == "false") {
+        sortBy = "-" + header.sortBy;
+        desc = true;
+      } else {
+        sortBy = "";
+        desc = "";
+      }
+
+      this.fetchAPIBuildings({
+        page: query.page || 1,
+        page_size: query.pageSize || 50,
+        sortBy: sortBy,
+
+        building_type: query.building_type || "",
+      });
+      this.$router.push({
+        path: "/projects/75ea5a2e-e123-40df-a8c4-bf65386dba16/buildings",
+        query: {
+          page: query.page || 1,
+          page_size: query.pageSize || 50,
+          sortBy: sortBy,
+          desc: desc,
+          building_type: query.building_type || "",
+        },
+      });
+    },
+
+    setColumnWidths() {
+      const table = document.querySelector(".resize-table");
+
+      const headerCells = table.getElementsByTagName("th");
+
+      this.columnWidths = Array.from(headerCells).map((cell) => {
+        return cell.offsetWidth;
+      });
+    },
+
+    resizeMousedown(e) {
+      this.resizeInfo.curCol = e.target.parentElement;
+      this.resizeInfo.pageX = e.pageX;
+
+      this.resizeInfo.curColWidth = this.resizeInfo.curCol.offsetWidth;
+    },
+
+    resizeMousemove(e) {
+      if (this.resizeInfo.curCol) {
+        var diffX = e.pageX - this.resizeInfo.pageX;
+
+        this.resizeInfo.curCol.style.minWidth =
+          this.resizeInfo.curColWidth + diffX + "px";
+
+        this.resizeInfo.curCol.style.width =
+          this.resizeInfo.curColWidth + diffX + "px";
+      }
+    },
+
+    async resizeMouseup(e) {
+      if (!!this.resizeInfo.curCol) {
+        var parent = this.resizeInfo.curCol.parentNode;
+        var children = parent.children;
+
+        // Tìm vị trí của phần tử con trong danh sách các phần tử con của cha
+        var index = Array.prototype.indexOf.call(
+          children,
+          this.resizeInfo.curCol
+        );
+
+        console.log(index);
+
+        try {
+          const response = await axios.get(
+            "/api/org-members/63c7f081-ef87-4421-bc5e-ca4a9b891b6b/preferences/buildingsColumns/"
+          );
+          const data = response.data.value;
+
+          // data = data.table_settings[data.active_idx].column_sizes.splice(
+          //   index,
+          //   1,
+          //   this.resizeInfo.curColWidth + 10
+          // );
+
+          console.log(data);
+
+          // const res = await axios.put(
+          //   "/api/org-members/63c7f081-ef87-4421-bc5e-ca4a9b891b6b/preferences/buildingsColumns/",
+          //   { value: data }
+          // );
+        } catch (err) {
+          console.log(err);
+        }
+
+        this.resizeInfo.curCol = undefined;
+        this.resizeInfo.pageX = undefined;
+        this.resizeInfo.curColWidth = undefined;
+      }
+    },
   },
 
   created() {
@@ -283,11 +441,12 @@ export default {
       page: query.page || 1,
       page_size: query.pageSize || 50,
       sortBy: query.sortBy || "name",
-      desc: query.desc || false,
+      desc: query.desc,
       building_type: query.building_type || "",
     });
 
     this.getBuildingsColumns();
+    this.fetchAPIBuildingsFull();
   },
 
   mounted() {
@@ -295,6 +454,8 @@ export default {
       ".v-data-table__wrapper"
     );
     scrollArea.addEventListener("scroll", this.handleScroll);
+    document.addEventListener("mousemove", this.resizeMousemove);
+    document.addEventListener("mouseup", this.resizeMouseup);
   },
 };
 </script>
@@ -335,5 +496,23 @@ export default {
 
 .v-data-footer__pagination {
   position: relative;
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+}
+
+.resize-handle {
+  position: absolute;
+  top: 0;
+  right: -5px;
+  width: 10px;
+  height: 100%;
+  cursor: col-resize;
+}
+
+.resize-handle:hover {
+  background-color: #ddd;
 }
 </style>

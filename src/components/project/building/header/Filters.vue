@@ -40,10 +40,14 @@
       <v-container class="px-0">
         <v-row>
           <v-col lg="6" class="pr-1"
-            ><primary-button text="Clear Filters" outlined></primary-button
+            ><primary-button
+              text="Clear Filters"
+              outlined
+              minWidth="100%"
+            ></primary-button
           ></v-col>
           <v-col lg="6" class="pl-1">
-            <primary-button text="Done"> </primary-button>
+            <primary-button text="Done" minWidth="100%"> </primary-button>
           </v-col>
         </v-row>
       </v-container>

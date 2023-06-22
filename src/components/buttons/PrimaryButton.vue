@@ -1,6 +1,6 @@
 <template>
   <v-btn
-    min-width="100%"
+    :min-width="minWidth"
     class="text-capitalize"
     :loading="loading4"
     :disabled="loading4"
@@ -31,6 +31,11 @@ export default {
     },
     outlined: {
       type: Boolean,
+    },
+
+    minWidth: {
+      type: String,
+      default: "auto",
     },
   },
 

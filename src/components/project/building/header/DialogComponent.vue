@@ -22,7 +22,41 @@
         {{ tooltip }}
       </v-list-item-title>
       <v-spacer></v-spacer>
-      <v-btn class="dialog__button" depressed fab @click="dialog = !dialog"
+      <v-dialog v-if="dialogClose" v-model="dialog1" persistent max-width="500">
+        <template v-slot:activator="{ on, attrs }">
+          <v-btn class="dialog__button" depressed fab v-bind="attrs" v-on="on">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </template>
+        <v-card>
+          <v-card-title class="text-h5"> Unsaved Changes </v-card-title>
+          <v-card-text
+            >You have unsaved changes, are you sure you want to
+            cancel?</v-card-text
+          >
+          <v-card-actions>
+            <v-spacer></v-spacer>
+
+            <primary-button
+              text="No, Return"
+              :onCreate="handleNo"
+              outlined
+            ></primary-button>
+
+            <primary-button
+              text="Yes, Cancel"
+              :onCreate="handleYes"
+              minWidth="180px"
+            ></primary-button>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+      <v-btn
+        v-else
+        class="dialog__button"
+        depressed
+        fab
+        @click="dialog = !dialog"
         ><v-icon>mdi-close</v-icon></v-btn
       >
     </v-list-item>
@@ -38,10 +72,12 @@
 
 <script>
 import IconButton from "@/components/buttons/IconButton.vue";
+import PrimaryButton from "@/components/buttons/PrimaryButton.vue";
 export default {
   data() {
     return {
       dialog: false,
+      dialog1: false,
     };
   },
 
@@ -62,10 +98,24 @@ export default {
       type: Boolean,
       default: false,
     },
+    dialogClose: {
+      type: Boolean,
+      default: false,
+    },
   },
 
   components: {
     IconButton,
+    PrimaryButton,
+  },
+
+  methods: {
+    handleNo() {
+      this.dialog1 = false;
+    },
+    handleYes() {
+      this.dialog = false;
+    },
   },
 };
 </script>
