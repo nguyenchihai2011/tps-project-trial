@@ -20,7 +20,10 @@
             :rules="rules.buildingType"
             label="Building Type*"
           ></v-select>
-          <v-text-field label="Building ID"></v-text-field>
+          <v-text-field
+            label="Building ID"
+            v-model="building.ref_id"
+          ></v-text-field>
           <v-select
             v-model="building.state"
             :items="state"

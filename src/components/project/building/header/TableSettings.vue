@@ -2,14 +2,14 @@
   <dialog-component :icon="icon" :tooltip="tooltip">
     <template slot="content">
       <v-divider></v-divider>
-      <v-container>
+      <v-container class="table-settings-content">
         <v-row>
           <b><p class="mt-4">Setting</p></b>
         </v-row>
         <v-row align="center">
           <v-col sm="8" class="pa-0">
             <v-select
-              v-model="selectedSetting"
+              v-model="settingDefault.freezeColumns"
               :items="settings.table_settings"
               item-value="name"
               item-text="name"
@@ -28,14 +28,14 @@
         </v-row>
         <div>
           <v-checkbox
-            v-model="checkbox1"
-            :label="`Checkbox 1: ${checkbox1.toString()}`"
+            v-model="settingDefault.showRedactedState"
+            :label="`Show Redacted Buildings`"
             hide-details
             class="mt-3"
           ></v-checkbox>
           <v-checkbox
-            v-model="checkbox2"
-            :label="`Checkbox 2: ${checkbox2.toString()}`"
+            v-model="settingDefault.showInactiveState"
+            :label="`Show Inactived Buildings`"
             hide-details
             class="mt-3"
           ></v-checkbox>
@@ -43,7 +43,7 @@
         <v-row>
           <v-col sm="8">
             <v-select
-              v-model="selectedFreezeColumns"
+              v-model="settingDefault.freezeColumns"
               :items="[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]"
               label="Freeze Lefthand Columns"
               class="mt-8"
@@ -59,8 +59,53 @@
           </p>
         </v-row>
         <v-row class="columns-content">
-          <v-col></v-col>
-          <v-col></v-col>
+          <v-col style="padding: 12px 0px">
+            <b><span style="font-size: 14px">Available Columns</span></b>
+            <p style="font-size: 14px">Select columns to add</p>
+
+            <v-text-field
+              v-model="search"
+              prepend-inner-icon="mdi-magnify"
+              label="Search result..."
+              class="building__header__search align-center mr-3"
+              height="42px"
+              hide-details
+              dense
+              solo
+              clearable
+            >
+            </v-text-field>
+            <v-checkbox
+              class="ml-2"
+              v-model="selectAll"
+              label="Select All"
+              hide-details
+            ></v-checkbox>
+            <v-checkbox
+              class="ml-2"
+              v-for="column in columns"
+              :key="column.value"
+              v-model="column.value"
+              :label="column.text"
+              hide-details
+            ></v-checkbox>
+          </v-col>
+          <v-col style="padding: 12px 0px"
+            ><b><span style="font-size: 14px">Selected Columns</span></b>
+            <p style="font-size: 14px">Drag and drop to reorder</p>
+            <v-list>
+              <v-list-item-group v-model="model">
+                <v-list-item v-for="(item, i) in items" :key="i">
+                  <v-list-item-icon>
+                    <v-icon> mdi-drag-horizontal-variant</v-icon>
+                  </v-list-item-icon>
+                  <v-list-item-content>
+                    <v-list-item-title>Select</v-list-item-title>
+                  </v-list-item-content>
+                </v-list-item>
+              </v-list-item-group>
+            </v-list></v-col
+          >
         </v-row>
       </v-container>
     </template>
@@ -72,10 +117,11 @@
             ><primary-button
               text="Save And Create Another"
               outlined
+              minWidth="100%"
             ></primary-button
           ></v-col>
           <v-col lg="6" class="pl-1">
-            <primary-button text="Save"> </primary-button>
+            <primary-button text="Save" minWidth="100%"> </primary-button>
           </v-col>
         </v-row>
       </v-container>
@@ -87,6 +133,7 @@
 import axios from "axios";
 import DialogComponent from "./DialogComponent.vue";
 import PrimaryButton from "@/components/buttons/PrimaryButton.vue";
+import columns from "@/mixins/columns";
 export default {
   data() {
     return {
@@ -94,10 +141,12 @@ export default {
         name: "Default",
         columns: ["ref_id", "name", "building_type", "skup_total", "state"],
         isInUse: false,
-        fixedNumber: 2,
-        showInactiveState: false,
+        freezeColumns: 3,
         showRedactedState: false,
+        showInactiveState: true,
       },
+
+      search: "",
 
       settings: {},
 
@@ -107,6 +156,9 @@ export default {
       checkbox2: false,
 
       selectedFreezeColumns: 2,
+      selectAll: false,
+
+      model: 1,
     };
   },
   props: {
@@ -123,6 +175,8 @@ export default {
     DialogComponent,
     PrimaryButton,
   },
+
+  mixins: [columns],
 
   methods: {
     async fetchAPIBuildingsColumn() {
@@ -152,5 +206,11 @@ export default {
 <style>
 .columns-content {
   border-top: 2px solid #8080805c;
+}
+
+.table-settings-content {
+  height: calc(100vh - 110px);
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 </style>

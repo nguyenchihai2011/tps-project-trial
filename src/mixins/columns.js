@@ -92,17 +92,16 @@ const columns = {
   },
 
   methods: {
-    filterColumns(arrColumns) {
+    filterColumns(column_setting) {
       this.usedColumns = this.columns.filter((column) => {
-        return arrColumns.indexOf(column.value) !== -1;
+        return column_setting.columns.indexOf(column.value) !== -1;
       });
-      this.usedColumns = this.usedColumns.map((column) => {
+      this.usedColumns = this.usedColumns.map((column, index) => {
         return {
           ...column,
           divider: true,
           resizable: true,
-          class: "resize-header-cell",
-          width: "200px",
+          width: column_setting.column_sizes[index + 1] + "px",
         };
       });
     },

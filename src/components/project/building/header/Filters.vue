@@ -56,7 +56,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapMutations } from "vuex";
+import { mapActions, mapGetters } from "vuex";
 import DialogComponent from "./DialogComponent.vue";
 import PrimaryButton from "@/components/buttons/PrimaryButton.vue";
 export default {
@@ -87,18 +87,20 @@ export default {
   watch: {
     selectFilter(newValue) {
       this.fetchAPIBuildings({
-        sort: "name",
+        page: 1,
+        page_size: this.$route.query.pageSize,
+        sortBy: this.$route.query.sortBy,
+        desc: this.$route.query.desc,
         project: "75ea5a2e-e123-40df-a8c4-bf65386dba16",
-        state: ["ACTIVE", "INACTIVE", "REDACTED"],
         building_type: newValue,
       });
       this.$router.push({
         path: "/projects/75ea5a2e-e123-40df-a8c4-bf65386dba16/buildings",
         query: {
-          page: this.$route.query.page,
+          page: 1,
           pageSize: this.$route.query.pageSize,
-          sortBy: "name",
-          desc: false,
+          sortBy: this.$route.query.sortBy,
+          desc: this.$route.query.desc,
           building_type: newValue,
         },
       });
@@ -106,7 +108,6 @@ export default {
   },
 
   methods: {
-    ...mapMutations(["setFilter"]),
     ...mapActions(["fetchAPIBuildings"]),
   },
 };

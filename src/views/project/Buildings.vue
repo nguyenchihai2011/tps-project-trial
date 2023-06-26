@@ -5,49 +5,81 @@
     <!-- BuildingDataTable -->
     <v-card class="building__table">
       <building-data-table />
+
       <v-data-table
         :headers="usedColumns"
         :items="getBuildings"
-        :items-per-page="itemsPerPage"
-        :page="page"
+        :items-per-page="pagination.itemsPerPage"
+        :page="pagination.page"
         :server-items-length="getMetaBuildings.total_results"
         @pagination="handlePagination"
         show-select
         v-model="selectedBuilding"
         fixed-header
-        :fixed-columns="2"
+        :loading="getLoading"
         class="custom-data-table resize-table"
         :footer-props="{
           'items-per-page-options': [5, 10, 25, 50],
+          disablePagination: getLoading,
+          disableItemsPerPage: getLoading,
         }"
         ref="dataTable"
       >
+        <!-- Custom header -->
         <template
           v-for="(column, index) in usedColumns"
           v-slot:[`header.${column.value}`]="{ header }"
         >
           <span @click="handleSortBy(header)">
             {{ header.text }}
-            <v-icon v-if="header.edit === 'true'">mdi-pencil</v-icon>
+            <v-icon style="font-size: 16px" v-if="header.edit === 'true'"
+              >mdi-pencil</v-icon
+            >
           </span>
           <div class="resize-handle" @mousedown="resizeMousedown"></div>
         </template>
 
-        <template v-slot:item.ref_id="{ item }">
+        <!-- Custom item -->
+        <template
+          v-for="(data, index) in usedColumns"
+          v-slot:[`item.${data.value}`]="{ item }"
+        >
           <td>
             <v-edit-dialog
-              :return-value="item.ref_id"
+              v-if="data.edit === 'true'"
+              :return-value="item[data.value]"
               @open="copyData(item)"
               @close="save(item)"
             >
-              {{ item.ref_id || "___" }}
+              <span v-if="item[data.value] != 'Error'">
+                {{ item[data.value] || "——" }}
+              </span>
+              <span
+                v-else
+                style="color: red"
+                @click.stop="
+                  fetchAPIBuildings({
+                    page: $route.query.page,
+                    page_size: $route.query.pageSize,
+                    sortBy: $route.query.sortBy,
+                    desc: $route.query.desc,
+                    building_type: $route.query.building_type,
+                  })
+                "
+              >
+                <div>Error</div>
+                <div>Click to refresh</div>
+              </span>
+
               <template v-slot:input>
                 <v-text-field
-                  v-model="item.ref_id"
+                  v-model="item[data.value]"
                   label="Building ID"
                 ></v-text-field>
               </template>
             </v-edit-dialog>
+
+            <span v-else> {{ item[data.value] }} </span>
           </td>
         </template>
         <template v-slot:item.building_type="{ item }">
@@ -77,8 +109,8 @@
               :color="
                 item.state !== 'ACTIVE'
                   ? item.state === 'INACTIVE'
-                    ? 'yellow'
-                    : 'grey'
+                    ? 'grey'
+                    : 'yellow'
                   : 'green'
               "
               text-color="white"
@@ -111,7 +143,7 @@
 
               <div>
                 <v-select
-                  v-model="page"
+                  v-model="pagination.page"
                   :items="
                     Array.from(
                       { length: getMetaBuildings.total_pages },
@@ -129,6 +161,7 @@
                     color: 'rgba(0, 0, 0, 0.87)',
                     width: 46 + 'px',
                   }"
+                  :disabled="getLoading"
                 ></v-select>
               </div>
             </v-row>
@@ -146,6 +179,15 @@
           </v-row>
         </template>
       </v-data-table>
+      <v-snackbar v-model="snackbar" timeout="-1" color="rgb(184, 15, 0)">
+        Ensure this field has no more than 50 characters.
+
+        <template v-slot:action="{ attrs }">
+          <v-btn text v-bind="attrs" @click="snackbar = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </template>
+      </v-snackbar>
     </v-card>
   </v-container>
 </template>
@@ -161,9 +203,10 @@ export default {
   data() {
     return {
       buildingsColumns: [],
-      page: +this.$route.query.page || 1,
-      itemsPerPage: +this.$route.query.pageSize || 50,
-      pages: [],
+      pagination: {
+        page: +this.$route.query.page || 1,
+        itemsPerPage: +this.$route.query.pageSize || 50,
+      },
       selectedBuilding: [],
       scrollShow: false,
       selectedBuildingType: "",
@@ -172,7 +215,9 @@ export default {
         pageX: Number,
         curCol: null,
         curColWidth: Number,
+        diffX: Number,
       },
+      snackbar: false,
     };
   },
   components: {
@@ -191,50 +236,41 @@ export default {
   mixins: [columns],
 
   computed: {
-    ...mapGetters(["getBuildings", "getMetaBuildings", "getBuildingTypes"]),
+    ...mapGetters([
+      "getBuildings",
+      "getMetaBuildings",
+      "getBuildingTypes",
+      "getLoading",
+    ]),
   },
 
   watch: {
     selectedBuilding(newValue) {
       this.setSelectedBuilding(newValue.map((item) => item.id));
     },
-    page(newValue) {
-      this.fetchAPIBuildings({
-        page: newValue,
-        page_size: this.itemsPerPage,
-        sortBy: "name",
-        desc: false,
-        building_type: this.$route.query?.building_type,
-      });
-      this.$router.push({
-        path: "/projects/75ea5a2e-e123-40df-a8c4-bf65386dba16/buildings",
-        query: {
-          page: newValue,
-          pageSize: this.itemsPerPage,
-          sortBy: "name",
-          desc: false,
-          building_type: this.$route.query?.building_type,
-        },
-      });
-    },
-    itemsPerPage(newValue) {
-      this.fetchAPIBuildings({
-        page: this.page,
-        page_size: newValue,
-        sortBy: "name",
-        desc: false,
-        building_type: this.$route.query?.building_type,
-      });
-      this.$router.push({
-        path: "/projects/75ea5a2e-e123-40df-a8c4-bf65386dba16/buildings",
-        query: {
-          page: this.page,
-          pageSize: newValue,
-          sortBy: "name",
-          desc: false,
-          building_type: this.$route.query?.building_type,
-        },
-      });
+
+    pagination: {
+      deep: true,
+      handler: function (newValue) {
+        this.fetchAPIBuildings({
+          page: newValue.page,
+          page_size: newValue.itemsPerPage,
+          sortBy: this.$route.query.sortBy,
+          desc: this.$route.query.desc,
+          building_type: this.$route.query.building_type,
+        });
+
+        this.$router.push({
+          path: "/projects/75ea5a2e-e123-40df-a8c4-bf65386dba16/buildings",
+          query: {
+            page: newValue.page,
+            pageSize: newValue.itemsPerPage,
+            sortBy: this.$route.query.sortBy,
+            desc: this.$route.query.desc,
+            building_type: this.$route.query.building_type,
+          },
+        });
+      },
     },
   },
 
@@ -248,15 +284,15 @@ export default {
         );
         const data = response.data.value;
 
-        this.filterColumns(data.table_settings[data.active_idx].columns);
+        this.filterColumns(data.table_settings[data.active_idx]);
       } catch (err) {
         console.log(err);
       }
     },
     async handlePagination(pagination) {
       try {
-        this.page = pagination.page;
-        this.itemsPerPage = pagination.itemsPerPage;
+        this.pagination.page = pagination.page;
+        this.pagination.itemsPerPage = pagination.itemsPerPage;
       } catch (error) {
         console.log(error);
       }
@@ -294,14 +330,17 @@ export default {
           this.selectedBuildingType = "";
           const query = this.$route.query;
           this.fetchAPIBuildings({
-            page: query.page || 1,
-            page_size: query.pageSize || 50,
-            sortBy: query.sortBy || "name",
-            desc: query.desc || false,
-            building_type: query.building_type || "",
+            page: query.page,
+            page_size: query.pageSize,
+            sortBy: query.sortBy,
+            desc: query.desc,
+            building_type: query.building_type,
           });
         } catch (err) {
           console.log(err);
+          // item.ref_id = "Error\nClick to refresh";
+          item.ref_id = "Error";
+          this.snackbar = true;
         }
       } else if (this.selectedBuildingType) {
         try {
@@ -330,47 +369,39 @@ export default {
     },
 
     handleSortBy(header) {
-      const query = this.$route.query;
-      let sortBy = "";
-      let desc = "";
-
-      if (query.desc == "" || query.desc == undefined) {
-        sortBy = header.sortBy;
-        desc = false;
-      } else if (query.desc == "false") {
-        sortBy = "-" + header.sortBy;
-        desc = true;
+      if (this.$route.query.sortBy !== header.sortBy) {
+        this.sortBy = header.sortBy;
+        this.sortDesc = false;
       } else {
-        sortBy = "";
-        desc = "";
+        if (this.$route.query.desc == "false") {
+          this.sortDesc = true;
+          this.sortBy = "-" + header.sortBy;
+        } else if (this.$route.query.desc == "true") {
+          this.sortDesc = "";
+          this.sortBy = "";
+        } else {
+          this.sortDesc = false;
+          this.sortBy = header.sortBy;
+        }
       }
 
-      this.fetchAPIBuildings({
-        page: query.page || 1,
-        page_size: query.pageSize || 50,
-        sortBy: sortBy,
+      const query = this.$route.query;
 
-        building_type: query.building_type || "",
+      this.fetchAPIBuildings({
+        page: query.page,
+        page_size: this.pagination.itemsPerPage,
+        sortBy: this.sortBy,
+        building_type: query.building_type,
       });
       this.$router.push({
         path: "/projects/75ea5a2e-e123-40df-a8c4-bf65386dba16/buildings",
         query: {
-          page: query.page || 1,
-          page_size: query.pageSize || 50,
-          sortBy: sortBy,
-          desc: desc,
-          building_type: query.building_type || "",
+          page: query.page,
+          page_size: this.pagination.itemsPerPage,
+          sortBy: this.sortBy.replace(/-/g, ""),
+          desc: this.sortDesc,
+          building_type: query.building_type,
         },
-      });
-    },
-
-    setColumnWidths() {
-      const table = document.querySelector(".resize-table");
-
-      const headerCells = table.getElementsByTagName("th");
-
-      this.columnWidths = Array.from(headerCells).map((cell) => {
-        return cell.offsetWidth;
       });
     },
 
@@ -383,13 +414,13 @@ export default {
 
     resizeMousemove(e) {
       if (this.resizeInfo.curCol) {
-        var diffX = e.pageX - this.resizeInfo.pageX;
+        this.resizeInfo.diffX = e.pageX - this.resizeInfo.pageX;
 
         this.resizeInfo.curCol.style.minWidth =
-          this.resizeInfo.curColWidth + diffX + "px";
+          this.resizeInfo.curColWidth + this.resizeInfo.diffX + "px";
 
         this.resizeInfo.curCol.style.width =
-          this.resizeInfo.curColWidth + diffX + "px";
+          this.resizeInfo.curColWidth + this.resizeInfo.diffX + "px";
       }
     },
 
@@ -404,26 +435,32 @@ export default {
           this.resizeInfo.curCol
         );
 
-        console.log(index);
-
         try {
           const response = await axios.get(
             "/api/org-members/63c7f081-ef87-4421-bc5e-ca4a9b891b6b/preferences/buildingsColumns/"
           );
           const data = response.data.value;
 
-          // data = data.table_settings[data.active_idx].column_sizes.splice(
-          //   index,
-          //   1,
-          //   this.resizeInfo.curColWidth + 10
-          // );
+          let table_settings__column_sizes =
+            data.table_settings[data.active_idx].column_sizes;
+          table_settings__column_sizes.splice(
+            index,
+            1,
+            this.resizeInfo.curColWidth + this.resizeInfo.diffX
+          );
 
-          console.log(data);
+          let table_setting = {
+            ...data.table_settings[data.active_idx],
+            column_sizes: table_settings__column_sizes,
+          };
 
-          // const res = await axios.put(
-          //   "/api/org-members/63c7f081-ef87-4421-bc5e-ca4a9b891b6b/preferences/buildingsColumns/",
-          //   { value: data }
-          // );
+          let table_settings = data.table_settings;
+          table_settings.splice(data.active_idx, 1, table_setting);
+
+          const res = await axios.put(
+            "/api/org-members/63c7f081-ef87-4421-bc5e-ca4a9b891b6b/preferences/buildingsColumns/",
+            { value: { ...data, table_settings: table_settings } }
+          );
         } catch (err) {
           console.log(err);
         }
@@ -431,18 +468,20 @@ export default {
         this.resizeInfo.curCol = undefined;
         this.resizeInfo.pageX = undefined;
         this.resizeInfo.curColWidth = undefined;
+        this.resizeInfo.diffX = undefined;
       }
     },
   },
 
   created() {
     const query = this.$route.query;
+
     this.fetchAPIBuildings({
-      page: query.page || 1,
-      page_size: query.pageSize || 50,
-      sortBy: query.sortBy || "name",
+      page: query.page,
+      page_size: query.pageSize,
+      sortBy: query.sortBy,
       desc: query.desc,
-      building_type: query.building_type || "",
+      building_type: query.building_type,
     });
 
     this.getBuildingsColumns();
@@ -453,7 +492,9 @@ export default {
     const scrollArea = this.$refs.dataTable.$el.querySelector(
       ".v-data-table__wrapper"
     );
+
     scrollArea.addEventListener("scroll", this.handleScroll);
+
     document.addEventListener("mousemove", this.resizeMousemove);
     document.addEventListener("mouseup", this.resizeMouseup);
   },
@@ -487,6 +528,8 @@ export default {
 .custom-data-table .v-data-table__wrapper {
   max-height: 400px;
   overflow: auto;
+  position: relative;
+  white-space: nowrap;
 }
 
 .to-top-of-table {
@@ -506,13 +549,47 @@ export default {
 .resize-handle {
   position: absolute;
   top: 0;
-  right: -5px;
-  width: 10px;
+  right: -3px;
+  width: 6px;
   height: 100%;
   cursor: col-resize;
 }
 
 .resize-handle:hover {
   background-color: #ddd;
+}
+
+.freeze-column {
+}
+
+.resize-table th:first-child,
+.resize-table tbody tr > td:first-child {
+  position: sticky !important;
+  width: 58px;
+  min-width: 58px;
+  left: 0px;
+  z-index: 4 !important;
+  background-color: #fff;
+  border: thin solid rgba(0, 0, 0, 0.12);
+}
+
+.resize-table th:nth-child(2),
+.resize-table tbody tr > td:nth-child(2) {
+  position: sticky !important;
+  width: 116px;
+  min-width: 116px;
+  left: 58px;
+  z-index: 4 !important;
+  background-color: #fff;
+  border: thin solid rgba(0, 0, 0, 0.12);
+}
+
+.v-data-table__progress {
+  position: sticky;
+  z-index: 5;
+}
+
+.v-snack__wrapper {
+  bottom: 50px;
 }
 </style>

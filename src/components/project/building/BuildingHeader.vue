@@ -40,12 +40,14 @@ import Edit from "./header/Edit.vue";
 import Filters from "./header/Filters.vue";
 import TableSettings from "./header/TableSettings.vue";
 import BuildingMenu from "./header/BuildingMenu.vue";
-import { mapGetters } from "vuex";
+import { mapActions, mapGetters } from "vuex";
+import debounce from "@/utils/debounce.js";
 
 export default {
   data() {
     return {
       search: "",
+      controller: new AbortController(),
     };
   },
 
@@ -60,6 +62,27 @@ export default {
 
   computed: {
     ...mapGetters(["getSelectedBuildingLength", "getSelectedBuilding"]),
+  },
+
+  watch: {
+    search: debounce(function (newValue) {
+      // Huỷ request trước nếu tồn tại
+      this.controller.abort();
+      // Tạo mới AbortController
+      this.controller = new AbortController();
+      this.fetchAPIBuildings({
+        page: this.$route.query.page,
+        page_size: this.$route.query.pageSize,
+        sortBy: "name",
+        building_type: this.$route.query.building_type,
+        search: newValue,
+        signal: this.controller.signal,
+      });
+    }, 1000),
+  },
+
+  methods: {
+    ...mapActions(["fetchAPIBuildings"]),
   },
 };
 </script>
