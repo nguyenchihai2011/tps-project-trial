@@ -101,8 +101,16 @@ const columns = {
           ...column,
           divider: true,
           resizable: true,
-          width: column_setting.column_sizes[index + 1] + "px",
+          width: column_setting.column_sizes
+            ? column_setting.column_sizes[index + 1] + "px"
+            : "auto",
         };
+      });
+    },
+
+    settingColumns(column_setting) {
+      return this.columns.filter((column) => {
+        return column_setting.columns.indexOf(column.value) !== -1;
       });
     },
   },

@@ -26,6 +26,7 @@
         ref="dataTable"
       >
         <!-- Custom header -->
+
         <template
           v-for="(column, index) in usedColumns"
           v-slot:[`header.${column.value}`]="{ header }"
@@ -241,6 +242,8 @@ export default {
       "getMetaBuildings",
       "getBuildingTypes",
       "getLoading",
+      "getFixedColumns",
+      "getColumnSizes",
     ]),
   },
 
@@ -275,7 +278,11 @@ export default {
   },
 
   methods: {
-    ...mapActions(["fetchAPIBuildings", "fetchAPIBuildingsFull"]),
+    ...mapActions([
+      "fetchAPIBuildings",
+      "fetchAPIBuildingsFull",
+      "fetchAPITableSettings",
+    ]),
     ...mapMutations(["setSelectedBuilding"]),
     async getBuildingsColumns() {
       try {
@@ -486,6 +493,7 @@ export default {
 
     this.getBuildingsColumns();
     this.fetchAPIBuildingsFull();
+    this.fetchAPITableSettings();
   },
 
   mounted() {
@@ -497,6 +505,52 @@ export default {
 
     document.addEventListener("mousemove", this.resizeMousemove);
     document.addEventListener("mouseup", this.resizeMouseup);
+  },
+
+  updated() {
+    for (var i = 2; i <= this.getFixedColumns; i++) {
+      //Mảng chiều rộng của các cột trước i;
+      const arrLeft = this.getColumnSizes.slice(0, i - 1);
+
+      //Tổng giá trị chiều rộng của các cột trước i
+      const totalLeft = arrLeft.reduce((total, cur) => total + cur, 0);
+
+      //DOM element là header cột thứ i
+      document.querySelector(
+        `.resize-table th:nth-child(${i})`
+      ).style.cssText = `position: sticky !important; width: ${
+        this.getColumnSizes[i - 1]
+      }px; min-width: ${
+        this.getColumnSizes[i - 1]
+      }px; left: ${totalLeft}px; z-index: 4 !important; background-color: #fff; border: thin solid rgba(0, 0, 0, 0.12);`;
+      const item_table = document.querySelectorAll(
+        `.resize-table tbody tr > td:nth-child(${i})`
+      );
+
+      if (i === this.getFixedColumns) {
+        document
+          .querySelector(`.resize-table th:nth-child(${i})`)
+          .style.setProperty("border-right", "thin solid rgba(0, 0, 0, 0.6)");
+      }
+
+      //DOM element là items cột thứ i
+      item_table.forEach((element) => {
+        element.style.cssText = `position: sticky !important; width: ${
+          this.getColumnSizes[i - 1]
+        }px; min-width: ${
+          this.getColumnSizes[i - 1]
+        }px; left: ${totalLeft}px; z-index: 4 !important; background-color: #fff; border: thin solid rgba(0, 0, 0, 0.12);`;
+      });
+
+      if (i === this.getFixedColumns) {
+        item_table.forEach((element) => {
+          element.style.setProperty(
+            "border-right",
+            "thin solid rgba(0, 0, 0, 0.6)"
+          );
+        });
+      }
+    }
   },
 };
 </script>
@@ -568,17 +622,6 @@ export default {
   width: 58px;
   min-width: 58px;
   left: 0px;
-  z-index: 4 !important;
-  background-color: #fff;
-  border: thin solid rgba(0, 0, 0, 0.12);
-}
-
-.resize-table th:nth-child(2),
-.resize-table tbody tr > td:nth-child(2) {
-  position: sticky !important;
-  width: 116px;
-  min-width: 116px;
-  left: 58px;
   z-index: 4 !important;
   background-color: #fff;
   border: thin solid rgba(0, 0, 0, 0.12);
