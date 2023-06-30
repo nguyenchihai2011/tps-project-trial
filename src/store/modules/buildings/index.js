@@ -5,7 +5,7 @@ const state = {
   buildings: [],
   metaBuilding: {},
   selectedBuilding: [],
-  loading: false,
+  loading: true,
 };
 
 const getters = {

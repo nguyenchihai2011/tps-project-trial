@@ -5,7 +5,6 @@
     <!-- BuildingDataTable -->
     <v-card class="building__table">
       <building-data-table />
-
       <v-data-table
         :headers="usedColumns"
         :items="getBuildings"
@@ -238,6 +237,7 @@ export default {
 
   computed: {
     ...mapGetters([
+      "getBuildingsColumns",
       "getBuildings",
       "getMetaBuildings",
       "getBuildingTypes",
@@ -275,25 +275,41 @@ export default {
         });
       },
     },
+
+    getBuildingsColumns(newValue) {
+      this.mapingColumns();
+    },
   },
 
   methods: {
     ...mapActions([
+      "fetchAPIBuildingsColumns",
       "fetchAPIBuildings",
       "fetchAPIBuildingsFull",
       "fetchAPITableSettings",
     ]),
     ...mapMutations(["setSelectedBuilding"]),
-    async getBuildingsColumns() {
-      try {
-        const response = await axios.get(
-          "/api/org-members/63c7f081-ef87-4421-bc5e-ca4a9b891b6b/preferences/buildingsColumns/"
-        );
-        const data = response.data.value;
 
-        this.filterColumns(data.table_settings[data.active_idx]);
-      } catch (err) {
-        console.log(err);
+    mapingColumns() {
+      let columns = this.getBuildingsColumns;
+      if (columns.active_idx !== -1) {
+        this.filterColumns(columns.table_settings[columns.active_idx]);
+      } else {
+        this.filterColumns({
+          columns: [
+            "ref_id",
+            "name",
+            "skup_total",
+            "building_type",
+            "full_address",
+            "state",
+          ],
+          fixed_number: 2,
+          is_in_use: false,
+          name: "Default",
+          show_inactive_state: false,
+          show_redacted_state: false,
+        });
       }
     },
     async handlePagination(pagination) {
@@ -480,9 +496,10 @@ export default {
     },
   },
 
-  created() {
+  async created() {
+    await this.fetchAPIBuildingsColumns();
+    this.mapingColumns();
     const query = this.$route.query;
-
     this.fetchAPIBuildings({
       page: query.page,
       page_size: query.pageSize,
@@ -490,8 +507,7 @@ export default {
       desc: query.desc,
       building_type: query.building_type,
     });
-
-    this.getBuildingsColumns();
+    // this.columnsUsed();
     this.fetchAPIBuildingsFull();
     this.fetchAPITableSettings();
   },
@@ -539,7 +555,7 @@ export default {
           this.getColumnSizes[i - 1]
         }px; min-width: ${
           this.getColumnSizes[i - 1]
-        }px; left: ${totalLeft}px; z-index: 4 !important; background-color: #fff; border: thin solid rgba(0, 0, 0, 0.12);`;
+        }px; left: ${totalLeft}px; z-index: 3 !important; background-color: #fff; border: thin solid rgba(0, 0, 0, 0.12);`;
       });
 
       if (i === this.getFixedColumns) {
@@ -581,9 +597,11 @@ export default {
 
 .custom-data-table .v-data-table__wrapper {
   max-height: 400px;
+  width: 100%;
   overflow: auto;
   position: relative;
   white-space: nowrap;
+  border-collapse: collapse;
 }
 
 .to-top-of-table {
@@ -621,10 +639,15 @@ export default {
   position: sticky !important;
   width: 58px;
   min-width: 58px;
+  max-width: 58px;
   left: 0px;
   z-index: 4 !important;
   background-color: #fff;
-  border: thin solid rgba(0, 0, 0, 0.12);
+  border-left: thin solid rgba(0, 0, 0, 0.12);
+}
+
+.resize-table tbody tr > td:first-child {
+  z-index: 3 !important;
 }
 
 .v-data-table__progress {

@@ -7,11 +7,11 @@ const state = {
   selectedSetting: {
     id: 0,
     columns: [
-      "name",
       "ref_id",
-      "full_address",
-      "building_type",
+      "name",
       "skup_total",
+      "building_type",
+      "full_address",
       "state",
     ],
     fixed_number: 2,
@@ -33,7 +33,14 @@ const getters = {
   getSettings: (state) => {
     let settingArr = [
       {
-        columns: ["ref_id", "name", "building_type", "skup_total", "state"],
+        columns: [
+          "ref_id",
+          "name",
+          "skup_total",
+          "building_type",
+          "full_address",
+          "state",
+        ],
         fixed_number: 2,
         is_in_use: false,
         name: "Default",
@@ -50,10 +57,21 @@ const getters = {
     });
   },
 
+  getSettingsNotDefault: (state) => {
+    return state.settings;
+  },
+
   getSettingsCopy: (state) => {
     let settingArr = [
       {
-        columns: ["ref_id", "name", "building_type", "skup_total", "state"],
+        columns: [
+          "ref_id",
+          "name",
+          "skup_total",
+          "building_type",
+          "full_address",
+          "state",
+        ],
         fixed_number: 2,
         is_in_use: false,
         name: "Default",
@@ -124,16 +142,16 @@ const actions = {
           id: data.active_idx + 1,
           ...data.table_settings[data.active_idx],
         });
+        commit("setColumns", data.table_settings[data.active_idx].columns);
+        commit(
+          "setFixedColumns",
+          data.table_settings[data.active_idx].fixed_number
+        );
+        commit(
+          "setColumnSizes",
+          data.table_settings[data.active_idx].column_sizes
+        );
       }
-      commit("setColumns", data.table_settings[data.active_idx].columns);
-      commit(
-        "setFixedColumns",
-        data.table_settings[data.active_idx].fixed_number
-      );
-      commit(
-        "setColumnSizes",
-        data.table_settings[data.active_idx].column_sizes
-      );
     } catch (error) {
       console.log(error);
     }

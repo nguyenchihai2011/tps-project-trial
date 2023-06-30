@@ -1,6 +1,6 @@
 <template>
   <dialog-component :icon="icon" :tooltip="tooltip">
-    <template slot="content">
+    <template v-slot:content="{ onClose }">
       <v-divider></v-divider>
       <v-container class="table-settings-content">
         <v-row>
@@ -11,7 +11,7 @@
         </v-row>
         <v-row align="center">
           <v-col sm="8" class="pa-0">
-            <v-autocomplete
+            <v-combobox
               v-if="!isCreate"
               v-model="tableSetting"
               :items="getSettings"
@@ -20,18 +20,19 @@
               item-text="name"
               item-value="id"
               return-object
-              @blur="saveAsNew()"
             >
               <template v-slot:item="{ item }">
                 <div>{{ item.name }}</div>
                 <v-spacer></v-spacer>
                 <div v-if="item.name !== 'Default'">
                   <DialogRemoveSetting
-                    :tableSettings="tableSettings"
-                  ></DialogRemoveSetting>
+                    :tableSettingProp="item"
+                    :onClose="onClose"
+                  >
+                  </DialogRemoveSetting>
                 </div>
               </template>
-            </v-autocomplete>
+            </v-combobox>
 
             <v-text-field
               v-else
@@ -71,12 +72,14 @@
             :label="`Show Redacted Buildings`"
             hide-details
             class="mt-3"
+            :disabled="isDisabled"
           ></v-checkbox>
           <v-checkbox
             v-model="tableSetting.show_inactive_state"
             :label="`Show Inactived Buildings`"
             hide-details
             class="mt-3"
+            :disabled="isDisabled"
           ></v-checkbox>
         </div>
         <v-row>
@@ -86,6 +89,7 @@
               :items="[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]"
               label="Freeze Lefthand Columns"
               class="mt-8"
+              :disabled="isDisabled"
             ></v-select>
           </v-col>
         </v-row>
@@ -120,8 +124,10 @@
               hide-details
               color="primary"
               v-model="selectAll"
-              :indeterminate="!selectAll && tableSetting.columns.length > 0"
+              :indeterminate="!selectAll && tableSetting?.columns?.length > 0"
+              :disabled="isDisabled"
             ></v-checkbox>
+
             <v-checkbox
               class="ml-2"
               v-for="column in columns"
@@ -130,6 +136,7 @@
               :key="column.value"
               :label="column.text"
               hide-details
+              :disabled="isDisabled"
             ></v-checkbox>
           </v-col>
           <v-col
@@ -139,7 +146,11 @@
             ><b><span style="font-size: 14px">Selected Columns</span></b>
             <p style="font-size: 14px">Drag and drop to reorder</p>
 
-            <draggable v-model="tableSetting.columns">
+            <draggable
+              v-model="tableSetting.columns"
+              :disabled="isDisabled"
+              :class="{ 'disabled-vuedragable': isDisabled }"
+            >
               <v-list-item v-for="(item, i) in textColumns" :key="i">
                 <v-list-item-icon>
                   <v-icon>mdi-drag-horizontal-variant</v-icon>
@@ -154,7 +165,7 @@
       </v-container>
     </template>
 
-    <template>
+    <template v-slot:default="{ onClose }">
       <v-container class="px-0">
         <v-row v-if="!isCreate">
           <v-col lg="6" class="pr-1">
@@ -164,6 +175,7 @@
               outlined
               :disabled="isSaveAsNew"
               class="text-capitalize"
+              @click="saveAsNew()"
             >
               Save as New
             </v-btn>
@@ -174,7 +186,7 @@
               color="primary"
               min-width="100%"
               class="text-capitalize"
-              @click="saveAndApply()"
+              @click="saveAndApply(onClose)"
             >
               Save and Apply
             </v-btn>
@@ -206,7 +218,7 @@
               color="primary"
               min-width="100%"
               class="text-capitalize"
-              @click="createApplySetting()"
+              @click="createApplySetting(onClose)"
             >
               Create and Apply
             </v-btn>
@@ -218,12 +230,14 @@
 </template>
 
 <script>
+import Vue from "vue";
+import isEqual from "lodash/isEqual";
 import DialogComponent from "./DialogComponent.vue";
 import DialogRemoveSetting from "@/components/dialogs/DialogRemoveSetting.vue";
 import PrimaryButton from "@/components/buttons/PrimaryButton.vue";
 import draggable from "vuedraggable";
 import columns from "@/mixins/columns";
-import { mapActions, mapGetters } from "vuex";
+import { mapActions, mapGetters, mapMutations } from "vuex";
 import axios from "axios";
 export default {
   data() {
@@ -232,11 +246,11 @@ export default {
       tableSetting: {
         id: 0,
         columns: [
-          "name",
           "ref_id",
-          "full_address",
-          "building_type",
+          "name",
           "skup_total",
+          "building_type",
+          "full_address",
           "state",
         ],
         fixed_number: 2,
@@ -245,13 +259,14 @@ export default {
         show_inactive_state: false,
         show_redacted_state: false,
       },
+      isDisabled: true,
       isCreate: false,
       isUpdate: false,
       isSaveAsNew: true,
       search: "",
-
-      selectedColumns: [],
       selectAll: false,
+      currentID: 0,
+      currentName: "Default",
     };
   },
   props: {
@@ -276,55 +291,137 @@ export default {
   watch: {
     selectAll(newValue) {
       if (newValue) {
-        this.selectedColumns = this.columns;
+        this.tableSetting.columns = this.columns.map((item) => item.value);
       } else {
-        this.selectedColumns = [];
+        this.tableSetting.columns = [];
       }
     },
-    selectedColumns(newValue) {
-      if (newValue.length === this.columns.length) {
-        this.selectAll = true;
+
+    tableSetting: {
+      handler(newValue) {
+        if (typeof newValue === "string") {
+          this.tableSetting = this.getSettings[this.currentID];
+          this.tableSetting.name = newValue;
+          this.tableSettings.splice(this.currentID, 1, this.tableSetting);
+        }
+        this.currentID = this.tableSetting.id;
+        if (newValue?.name !== this.getSettingsCopy[this.currentID].name) {
+          this.isSaveAsNew = false;
+        } else {
+          this.isSaveAsNew = true;
+        }
+
+        if (newValue?.columns?.length === this.columns.length) {
+          this.selectAll = true;
+        } else {
+          this.selectAll = false;
+        }
+
+        if (this.tableSetting.id === 0) {
+          this.isDisabled = true;
+        } else {
+          this.isDisabled = false;
+          const compareObject = isEqual(
+            this.tableSetting,
+            this.getSettingsCopy[this.tableSetting.id]
+          );
+          if (compareObject) {
+            this.isUpdate = false;
+          } else {
+            this.isUpdate = true;
+          }
+        }
+      },
+      deep: true,
+    },
+
+    getSelectedSetting() {
+      if (this.getSelectedSetting.id === 0) {
+        this.tableSetting = {
+          id: 0,
+          columns: [
+            "ref_id",
+            "name",
+            "skup_total",
+            "building_type",
+            "full_address",
+            "state",
+          ],
+          fixed_number: 2,
+          is_in_use: false,
+          name: "Default",
+          show_inactive_state: false,
+          show_redacted_state: false,
+        };
+      } else {
+        this.tableSetting = this.getSelectedSetting;
       }
     },
-    // tableSetting: {
-    //   handler(newValue) {
-    //     if (newValue.id === oldValue.id) {
-    //       const objSettingCpn = JSON.stringify(this.tableSetting);
-    //       const objSettingStore = JSON.stringify(this.getSelectedSetting);
-    //       if (objSettingCpn === objSettingStore) {
-    //         this.isUpdate = false;
-    //       } else {
-    //         this.isUpdate = true;
-    //       }
-    //     }
-    //   },
-    //   deep: true,
-    // },
+
+    getSettings() {
+      this.tableSettings = this.getSettings;
+    },
   },
 
   computed: {
     ...mapGetters([
       "getTableSettings",
-      "getColumns",
       "getSettings",
       "getSettingsCopy",
       "getSelectedSetting",
     ]),
 
     textColumns() {
-      return this.tableSetting.columns.map((value) =>
+      return this.tableSetting.columns?.map((value) =>
         this.columns.find((column) => column.value === value)
       );
     },
   },
 
   methods: {
-    ...mapActions(["fetchAPITableSettings", "fetchAPIBuildings"]),
-    saveAsNew() {
-      this.isSaveAsNew = false;
+    ...mapMutations(["setTableSettings", "setSettings", "setSettingsCopy"]),
+    ...mapActions([
+      "fetchAPIBuildingsColumns",
+      "fetchAPITableSettings",
+      "fetchAPIBuildings",
+    ]),
+    //Feature complete
+    async saveAndApply(onClose) {
+      try {
+        const response = await axios.put(
+          "/api/org-members/63c7f081-ef87-4421-bc5e-ca4a9b891b6b/preferences/buildingsColumns/",
+          {
+            value: {
+              active_idx: this.tableSetting.id - 1,
+              table_settings: [...this.getTableSettings.table_settings],
+            },
+          }
+        );
+        // this.setSettings([...this.getTableSettings.table_settings]);
+        // this.setSettingsCopy([...this.getTableSettings.table_settings]);
+        // this.setTableSettings({
+        //   active_idx: this.tableSetting.id - 1,
+        //   table_settings: [...this.getTableSettings.table_settings],
+        // });
+        await this.fetchAPITableSettings();
+        await this.fetchAPIBuildingsColumns();
+        const query = this.$route.query;
+        await this.fetchAPIBuildings({
+          page: query.page,
+          page_size: query.pageSize,
+          sortBy: query.sortBy,
+          desc: query.desc,
+          building_type: query.building_type,
+        });
+        onClose();
+      } catch (err) {
+        console.log(err);
+      }
     },
+
     openCreateSetting() {
       this.isCreate = true;
+      this.isDisabled = false;
       this.tableSetting = {
         columns: [
           "name",
@@ -342,35 +439,19 @@ export default {
       };
     },
 
-    async chooseSetting(idx) {
-      try {
-        const response = await axios.put(
-          "/api/org-members/63c7f081-ef87-4421-bc5e-ca4a9b891b6b/preferences/buildingsColumns/",
-          {
-            value: {
-              active_idx: idx,
-              table_settings: [
-                ...this.getTableSettings.table_settings,
-                this.tableSetting,
-              ],
-            },
-          }
-        );
-      } catch (err) {
-        console.log(err);
-      }
+    cancelCreate() {
+      this.isCreate = false;
+      this.isUpdate = false;
+      this.tableSetting = { ...this.getSelectedSetting };
     },
 
-    saveAndApply() {
-      this.chooseSetting(this.tableSetting.id - 1);
-    },
     async createSetting() {
       try {
         const response = await axios.put(
           "/api/org-members/63c7f081-ef87-4421-bc5e-ca4a9b891b6b/preferences/buildingsColumns/",
           {
             value: {
-              active_idx: 0,
+              active_idx: this.getTableSettings.active_idx,
               table_settings: [
                 ...this.getTableSettings.table_settings,
                 this.tableSetting,
@@ -378,67 +459,128 @@ export default {
             },
           }
         );
+        Vue.set(
+          this.tableSetting,
+          "id",
+          this.getTableSettings.table_settings.length + 1
+        );
+
+        this.setSettings([
+          ...this.getTableSettings.table_settings,
+          this.tableSetting,
+        ]);
+        this.setSettingsCopy([
+          ...this.getTableSettings.table_settings,
+          this.tableSetting,
+        ]);
+
+        this.setTableSettings({
+          active_idx: this.getTableSettings.active_idx,
+          table_settings: [
+            ...this.getTableSettings.table_settings,
+            this.tableSetting,
+          ],
+        });
+        this.isCreate = false;
       } catch (err) {
         console.log(err);
       }
     },
 
-    createApplySetting() {
-      this.createSetting();
-      this.chooseSetting(this.getTableSettings.table_settings.length);
-      const query = this.$route.query;
-      this.fetchAPIBuildings({
-        page: query.page,
-        page_size: query.pageSize,
-        sortBy: query.sortBy,
-        desc: query.desc,
-        building_type: query.building_type,
-      });
+    async createApplySetting(onClose) {
+      try {
+        const response = await axios.put(
+          "/api/org-members/63c7f081-ef87-4421-bc5e-ca4a9b891b6b/preferences/buildingsColumns/",
+          {
+            value: {
+              active_idx: this.getTableSettings.active_idx,
+              table_settings: [
+                ...this.getTableSettings.table_settings,
+                this.tableSetting,
+              ],
+            },
+          }
+        );
+        Vue.set(
+          this.tableSetting,
+          "id",
+          this.getTableSettings.table_settings.length + 1
+        );
+        this.setSettings([
+          ...this.getTableSettings.table_settings,
+          this.tableSetting,
+        ]);
+        this.setSettingsCopy([
+          ...this.getTableSettings.table_settings,
+          this.tableSetting,
+        ]);
+        this.setTableSettings({
+          active_idx: this.getTableSettings.active_idx,
+          table_settings: [
+            ...this.getTableSettings.table_settings,
+            this.tableSetting,
+          ],
+        });
+        this.isCreate = false;
+        await this.fetchAPIBuildingsColumns();
+        const query = this.$route.query;
+        await this.fetchAPIBuildings({
+          page: query.page,
+          page_size: query.pageSize,
+          sortBy: query.sortBy,
+          desc: query.desc,
+          building_type: query.building_type,
+        });
+        onClose();
+      } catch (err) {
+        console.log(err);
+      }
     },
 
     async updateSetting() {
-      let tableSettingArr = this.getTableSettings.table_settings;
-      tableSettingArr.splice(
-        this.tableSetting.id - 1,
-        this.tableSetting.id,
-        this.tableSetting
-      );
+      let updateSettings = this.getTableSettings.table_settings;
+      let tableSettingNoId = Object.assign({}, this.tableSetting);
+      delete tableSettingNoId.id;
+      updateSettings.splice(this.tableSetting.id - 1, 1, tableSettingNoId);
       try {
         const response = await axios.put(
           "/api/org-members/63c7f081-ef87-4421-bc5e-ca4a9b891b6b/preferences/buildingsColumns/",
           {
             value: {
               active_idx: this.tableSetting.id - 1,
-              table_settings: tableSettingArr,
+              table_settings: updateSettings,
             },
           }
         );
+        this.setSettings(updateSettings);
+        this.setSettingsCopy(updateSettings);
+        this.setTableSettings({
+          active_idx: this.getTableSettings.active_idx,
+          table_settings: updateSettings,
+        });
       } catch (err) {
         console.log(err);
       }
+      this.isUpdate = false;
     },
-    cancelCreate() {
-      this.isCreate = false;
-      this.tableSetting = { ...this.getSelectedSetting };
+
+    //Feature dont complete
+
+    saveAsNew() {
+      console.log(this.tableSetting);
     },
+
+    // lỗi khi gọi api get items
   },
 
   async created() {
     await this.fetchAPITableSettings();
     this.tableSetting = { ...this.getSelectedSetting };
-    this.tableSettings = { ...this.getSettings };
+    this.tableSettings = this.getSettings;
   },
 
   updated() {
-    const objSettingCpn = JSON.stringify(this.tableSetting);
-    const objSettingStore = JSON.stringify(
-      this.getSettingsCopy[this.tableSetting.id]
-    );
-    if (objSettingCpn === objSettingStore) {
-      this.isUpdate = false;
-    } else {
-      this.isUpdate = true;
-    }
+    console.log(this.tableSetting, this.tableSettings);
   },
 };
 </script>
@@ -452,5 +594,13 @@ export default {
   height: calc(100vh - 110px);
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.checkbox-all.v-input--indeterminate span {
+  color: #03a9f4;
+}
+
+.disabled-vuedragable {
+  opacity: 0.5;
 }
 </style>

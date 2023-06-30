@@ -1,3 +1,5 @@
+import axios from "axios";
+
 const columns = {
   data() {
     return {
@@ -93,9 +95,9 @@ const columns = {
 
   methods: {
     filterColumns(column_setting) {
-      this.usedColumns = this.columns.filter((column) => {
-        return column_setting.columns.indexOf(column.value) !== -1;
-      });
+      this.usedColumns = column_setting.columns.map((value) =>
+        this.columns.find((column) => column.value === value)
+      );
       this.usedColumns = this.usedColumns.map((column, index) => {
         return {
           ...column,

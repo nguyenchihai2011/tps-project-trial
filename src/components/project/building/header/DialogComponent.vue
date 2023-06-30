@@ -62,11 +62,11 @@
     </v-list-item>
 
     <!-- Content dialog -->
-    <slot name="content"></slot>
+    <slot name="content" :onClose="onClose"></slot>
 
     <v-divider></v-divider>
     <!-- Footer dialog -->
-    <slot name="default"></slot>
+    <slot name="default" :onClose="onClose"></slot>
   </v-dialog>
 </template>
 
@@ -114,6 +114,9 @@ export default {
       this.dialog1 = false;
     },
     handleYes() {
+      this.dialog = false;
+    },
+    onClose() {
       this.dialog = false;
     },
   },
