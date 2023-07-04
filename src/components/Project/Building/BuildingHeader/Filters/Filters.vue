@@ -1,5 +1,5 @@
 <template>
-  <dialog-component :icon="icon" :tooltip="tooltip" :badge="!!selectFilter">
+  <dialog-button :icon="icon" :tooltip="tooltip" :badge="!!selectFilter">
     <template slot="content">
       <v-text-field
         prepend-inner-icon="mdi-magnify"
@@ -52,12 +52,12 @@
         </v-row>
       </v-container>
     </template>
-  </dialog-component>
+  </dialog-button>
 </template>
 
 <script>
 import { mapActions, mapGetters } from "vuex";
-import DialogComponent from "./DialogComponent.vue";
+import DialogButton from "@/components/Dialogs/DialogButton.vue";
 import PrimaryButton from "@/components/buttons/PrimaryButton.vue";
 export default {
   data() {
@@ -76,7 +76,7 @@ export default {
     },
   },
   components: {
-    DialogComponent,
+    DialogButton,
     PrimaryButton,
   },
 

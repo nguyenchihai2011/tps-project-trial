@@ -1,6 +1,6 @@
 <template>
-  <dialog-component :icon="icon" :tooltip="tooltip" :dialogClose="true">
-    <template slot="content">
+  <dialog-button :icon="icon" :tooltip="tooltip" :dialogClose="true">
+    <template v-slot:content>
       <v-divider></v-divider>
       <v-list class="create-edit-content">
         <v-form ref="entryForm">
@@ -40,35 +40,38 @@
       </v-list>
     </template>
 
-    <template>
+    <template v-slot:default="{ onClose }">
       <v-container class="px-0">
         <v-row>
-          <v-col lg="6" class="pr-1"
-            ><primary-button
-              text="Save And Create Another"
-              :onCreate="handleCreateBuilding"
+          <v-col lg="6" class="pr-1">
+            <v-btn
+              class="text-capitalize"
+              color="primary"
               outlined
-              minWidth="100%"
-            ></primary-button
-          ></v-col>
+              min-width="100%"
+              @click="handleCreate()"
+              >Save And Create Another
+            </v-btn>
+          </v-col>
           <v-col lg="6" class="pl-1">
-            <primary-button
-              text="Save"
-              :onCreate="handleCreateBuilding"
-              minWidth="100%"
-            >
-            </primary-button>
+            <v-btn
+              class="text-capitalize"
+              color="primary"
+              min-width="100%"
+              @click="handleCreateAndClose(onClose)"
+              >Save
+            </v-btn>
           </v-col>
         </v-row>
       </v-container>
     </template>
-  </dialog-component>
+  </dialog-button>
 </template>
 
 <script>
 import country from "@/mixins/country";
 import { mapActions, mapGetters } from "vuex";
-import DialogComponent from "./DialogComponent.vue";
+import DialogButton from "@/components/Dialogs/DialogButton.vue";
 import PrimaryButton from "@/components/buttons/PrimaryButton.vue";
 import axios from "axios";
 
@@ -116,7 +119,7 @@ export default {
   mixins: [country],
 
   components: {
-    DialogComponent,
+    DialogButton,
     PrimaryButton,
   },
 
@@ -136,7 +139,7 @@ export default {
   methods: {
     ...mapActions(["fetchAPIBuildings", "fetchAPIBuildingTypes"]),
 
-    async handleCreateBuilding() {
+    async handleCreate() {
       this.rules.buildingName = [(v) => !!v || "This field is required"];
       this.rules.buildingType = [(v) => !!v || "This field is required"];
 
@@ -176,6 +179,10 @@ export default {
           console.log(err);
         }
       }
+    },
+    handleCreateAndClose(onClose) {
+      this.handleCreate();
+      onClose();
     },
   },
 

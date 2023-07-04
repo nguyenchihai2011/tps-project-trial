@@ -1,5 +1,5 @@
 <template>
-  <dialog-component :icon="icon" :tooltip="tooltip">
+  <dialog-button :icon="icon" :tooltip="tooltip">
     <template v-slot:content="{ onClose }">
       <v-divider></v-divider>
       <v-container class="table-settings-content">
@@ -175,7 +175,7 @@
               outlined
               :disabled="isSaveAsNew"
               class="text-capitalize"
-              @click="saveAsNew()"
+              @click="saveAsNew(onClose)"
             >
               Save as New
             </v-btn>
@@ -226,19 +226,20 @@
         </v-row>
       </v-container>
     </template>
-  </dialog-component>
+  </dialog-button>
 </template>
 
 <script>
 import Vue from "vue";
 import isEqual from "lodash/isEqual";
-import DialogComponent from "./DialogComponent.vue";
-import DialogRemoveSetting from "@/components/dialogs/DialogRemoveSetting.vue";
+import DialogButton from "@/components/Dialogs/DialogButton.vue";
+import DialogRemoveSetting from "@/components/Dialogs/DialogRemoveSetting.vue";
 import PrimaryButton from "@/components/buttons/PrimaryButton.vue";
 import draggable from "vuedraggable";
 import columns from "@/mixins/columns";
 import { mapActions, mapGetters, mapMutations } from "vuex";
 import axios from "axios";
+import tableSettingAPI from "@/requestHttp/tableSetting";
 export default {
   data() {
     return {
@@ -281,7 +282,7 @@ export default {
   },
   components: {
     DialogRemoveSetting,
-    DialogComponent,
+    DialogButton,
     PrimaryButton,
     draggable,
   },
@@ -385,38 +386,22 @@ export default {
       "fetchAPITableSettings",
       "fetchAPIBuildings",
     ]),
-    //Feature complete
-    async saveAndApply(onClose) {
-      try {
-        const response = await axios.put(
-          "/api/org-members/63c7f081-ef87-4421-bc5e-ca4a9b891b6b/preferences/buildingsColumns/",
-          {
-            value: {
-              active_idx: this.tableSetting.id - 1,
-              table_settings: [...this.getTableSettings.table_settings],
-            },
-          }
-        );
-        // this.setSettings([...this.getTableSettings.table_settings]);
-        // this.setSettingsCopy([...this.getTableSettings.table_settings]);
-        // this.setTableSettings({
-        //   active_idx: this.tableSetting.id - 1,
-        //   table_settings: [...this.getTableSettings.table_settings],
-        // });
-        await this.fetchAPITableSettings();
-        await this.fetchAPIBuildingsColumns();
-        const query = this.$route.query;
-        await this.fetchAPIBuildings({
-          page: query.page,
-          page_size: query.pageSize,
-          sortBy: query.sortBy,
-          desc: query.desc,
-          building_type: query.building_type,
-        });
-        onClose();
-      } catch (err) {
-        console.log(err);
-      }
+
+    saveAndApply(onClose) {
+      let active_idx = this.tableSetting.id - 1;
+      let table_settings = [...this.getTableSettings.table_settings];
+      tableSettingAPI.changeSetting(active_idx, table_settings);
+      this.fetchAPITableSettings();
+      this.fetchAPIBuildingsColumns();
+      const query = this.$route.query;
+      this.fetchAPIBuildings({
+        page: query.page,
+        page_size: query.pageSize,
+        sortBy: query.sortBy,
+        desc: query.desc,
+        building_type: query.building_type,
+      });
+      onClose();
     },
 
     openCreateSetting() {
@@ -445,142 +430,96 @@ export default {
       this.tableSetting = { ...this.getSelectedSetting };
     },
 
-    async createSetting() {
-      try {
-        const response = await axios.put(
-          "/api/org-members/63c7f081-ef87-4421-bc5e-ca4a9b891b6b/preferences/buildingsColumns/",
-          {
-            value: {
-              active_idx: this.getTableSettings.active_idx,
-              table_settings: [
-                ...this.getTableSettings.table_settings,
-                this.tableSetting,
-              ],
-            },
-          }
-        );
-        Vue.set(
-          this.tableSetting,
-          "id",
-          this.getTableSettings.table_settings.length + 1
-        );
+    createSetting() {
+      let active_idx = this.getTableSettings.active_idx;
+      let table_settings = [
+        ...this.getTableSettings.table_settings,
+        this.tableSetting,
+      ];
+      tableSettingAPI.changeSetting(active_idx, table_settings);
 
-        this.setSettings([
-          ...this.getTableSettings.table_settings,
-          this.tableSetting,
-        ]);
-        this.setSettingsCopy([
-          ...this.getTableSettings.table_settings,
-          this.tableSetting,
-        ]);
+      Vue.set(
+        this.tableSetting,
+        "id",
+        this.getTableSettings.table_settings.length + 1
+      );
 
-        this.setTableSettings({
-          active_idx: this.getTableSettings.active_idx,
-          table_settings: [
-            ...this.getTableSettings.table_settings,
-            this.tableSetting,
-          ],
-        });
-        this.isCreate = false;
-      } catch (err) {
-        console.log(err);
-      }
+      this.setSettings(table_settings);
+      this.setSettingsCopy(table_settings);
+      this.setTableSettings({
+        active_idx,
+        table_settings,
+      });
+      this.isCreate = false;
     },
 
-    async createApplySetting(onClose) {
-      try {
-        const response = await axios.put(
-          "/api/org-members/63c7f081-ef87-4421-bc5e-ca4a9b891b6b/preferences/buildingsColumns/",
-          {
-            value: {
-              active_idx: this.getTableSettings.active_idx,
-              table_settings: [
-                ...this.getTableSettings.table_settings,
-                this.tableSetting,
-              ],
-            },
-          }
-        );
-        Vue.set(
-          this.tableSetting,
-          "id",
-          this.getTableSettings.table_settings.length + 1
-        );
-        this.setSettings([
-          ...this.getTableSettings.table_settings,
-          this.tableSetting,
-        ]);
-        this.setSettingsCopy([
-          ...this.getTableSettings.table_settings,
-          this.tableSetting,
-        ]);
-        this.setTableSettings({
-          active_idx: this.getTableSettings.active_idx,
-          table_settings: [
-            ...this.getTableSettings.table_settings,
-            this.tableSetting,
-          ],
-        });
-        this.isCreate = false;
-        await this.fetchAPIBuildingsColumns();
-        const query = this.$route.query;
-        await this.fetchAPIBuildings({
-          page: query.page,
-          page_size: query.pageSize,
-          sortBy: query.sortBy,
-          desc: query.desc,
-          building_type: query.building_type,
-        });
-        onClose();
-      } catch (err) {
-        console.log(err);
-      }
+    createApplySetting(onClose) {
+      let active_idx = this.getTableSettings.table_settings.length;
+      let table_settings = [
+        ...this.getTableSettings.table_settings,
+        this.tableSetting,
+      ];
+      tableSettingAPI.changeSetting(active_idx, table_settings);
+
+      Vue.set(
+        this.tableSetting,
+        "id",
+        this.getTableSettings.table_settings.length + 1
+      );
+      this.isCreate = false;
+      this.fetchAPIBuildingsColumns();
+      const query = this.$route.query;
+      this.fetchAPIBuildings({
+        page: query.page,
+        page_size: query.pageSize,
+        sortBy: query.sortBy,
+        desc: query.desc,
+        building_type: query.building_type,
+      });
+      this.fetchAPITableSettings();
+      onClose();
     },
 
     async updateSetting() {
-      let updateSettings = this.getTableSettings.table_settings;
       let tableSettingNoId = Object.assign({}, this.tableSetting);
       delete tableSettingNoId.id;
+      let updateSettings = this.getTableSettings.table_settings;
       updateSettings.splice(this.tableSetting.id - 1, 1, tableSettingNoId);
-      try {
-        const response = await axios.put(
-          "/api/org-members/63c7f081-ef87-4421-bc5e-ca4a9b891b6b/preferences/buildingsColumns/",
-          {
-            value: {
-              active_idx: this.tableSetting.id - 1,
-              table_settings: updateSettings,
-            },
-          }
-        );
-        this.setSettings(updateSettings);
-        this.setSettingsCopy(updateSettings);
-        this.setTableSettings({
-          active_idx: this.getTableSettings.active_idx,
-          table_settings: updateSettings,
-        });
-      } catch (err) {
-        console.log(err);
-      }
+
+      let active_idx = this.tableSetting.id - 1;
+      let table_settings = updateSettings;
+      tableSettingAPI.changeSetting(active_idx, table_settings);
+
+      this.setSettings(table_settings);
+      this.setSettingsCopy(table_settings);
+      this.setTableSettings({
+        active_idx,
+        table_settings,
+      });
       this.isUpdate = false;
     },
 
-    //Feature dont complete
+    async saveAsNew(onClose) {
+      let newSetting = Object.assign({}, this.tableSetting);
+      delete newSetting.id;
 
-    saveAsNew() {
-      console.log(this.tableSetting);
+      let active_idx = this.getTableSettings.active_idx;
+      let table_settings = [
+        ...this.getTableSettings.table_settings,
+        newSetting,
+      ];
+      tableSettingAPI.changeSetting(active_idx, table_settings);
+      this.isCreate = false;
+      this.isUpdate = false;
+      this.fetchAPITableSettings();
+      onClose();
     },
-
-    // lỗi khi gọi api get items
   },
 
   async created() {
     await this.fetchAPITableSettings();
     this.tableSetting = { ...this.getSelectedSetting };
     this.tableSettings = this.getSettings;
-  },
-
-  updated() {
-    console.log(this.tableSetting, this.tableSettings);
   },
 };
 </script>

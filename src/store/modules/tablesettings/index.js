@@ -50,6 +50,9 @@ const getters = {
       ...state.settings,
     ];
     return settingArr.map((set, index) => {
+      if (set.name === undefined) {
+        set.name = "Custom" + index;
+      }
       return {
         id: index,
         ...set,

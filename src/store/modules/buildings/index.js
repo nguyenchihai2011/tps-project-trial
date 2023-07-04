@@ -1,17 +1,14 @@
 import axios from "axios";
 
 const state = {
-  buildingsFull: [],
   buildings: [],
   metaBuilding: {},
   selectedBuilding: [],
+  infoBuilding: {},
   loading: true,
 };
 
 const getters = {
-  getBuildingsFull: (state) => {
-    return state.buildingsFull;
-  },
   getBuildings: (state) => {
     return state.buildings;
   },
@@ -19,12 +16,13 @@ const getters = {
     return state.metaBuilding;
   },
   getSelectedBuilding: (state) => {
-    return state.buildingsFull.filter(
-      (item) => item.id === state.selectedBuilding[0]
-    );
+    return state.selectedBuilding;
   },
   getSelectedBuildingLength: (state) => {
     return state.selectedBuilding.length;
+  },
+  getInfoBuilding: (state) => {
+    return state.infoBuilding;
   },
   getLoading: (state) => {
     return state.loading;
@@ -44,27 +42,15 @@ const mutations = {
   setSelectedBuilding: (state, payload) => {
     state.selectedBuilding = payload;
   },
+  setInfoBuilding: (state, payload) => {
+    state.infoBuilding = payload;
+  },
   setLoading: (state, payload) => {
     state.loading = payload;
   },
 };
 
 const actions = {
-  fetchAPIBuildingsFull: async ({ commit }) => {
-    try {
-      const response = await axios.get(
-        "/api/projects/75ea5a2e-e123-40df-a8c4-bf65386dba16/"
-      );
-
-      const data = response.data.buildings.map((item) => {
-        return { ...item, building_type: item.building_type?.id };
-      });
-
-      commit("setBuildingsFull", data);
-    } catch (error) {
-      console.log(error);
-    }
-  },
   fetchAPIBuildings: async ({ commit }, payload) => {
     try {
       commit("setLoading", true);

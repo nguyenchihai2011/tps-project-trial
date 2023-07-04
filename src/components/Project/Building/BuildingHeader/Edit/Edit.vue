@@ -1,11 +1,12 @@
 <template>
-  <dialog-component
+  <dialog-button
     :icon="icon"
     :tooltip="tooltip"
     :disabled="disabled"
+    :handleEdit="handleEdit"
     :dialogClose="true"
   >
-    <template slot="content">
+    <template v-slot:content>
       <v-divider></v-divider>
       <v-list class="create-edit-content">
         <v-form ref="entryForm">
@@ -49,35 +50,37 @@
       </v-list>
     </template>
 
-    <template>
+    <template v-slot:default="{ onClose }">
       <v-container class="px-0">
         <v-row>
           <v-col lg="6" class="pr-1"
-            ><primary-button
-              text="Cancel"
-              :onCreate="handleEditBuilding"
+            ><v-btn
+              class="text-capitalize"
+              color="primary"
               outlined
-              minWidth="100%"
-            ></primary-button
-          ></v-col>
+              min-width="100%"
+              >Cancel</v-btn
+            ></v-col
+          >
           <v-col lg="6" class="pl-1">
-            <primary-button
-              text="Save"
-              :onCreate="handleEditBuilding"
-              minWidth="100%"
+            <v-btn
+              class="text-capitalize"
+              color="primary"
+              @click="handleEditBuilding(onClose)"
+              min-width="100%"
+              >Save</v-btn
             >
-            </primary-button>
           </v-col>
         </v-row>
       </v-container>
     </template>
-  </dialog-component>
+  </dialog-button>
 </template>
 
 <script>
 import country from "@/mixins/country";
-import { mapActions, mapGetters } from "vuex";
-import DialogComponent from "./DialogComponent.vue";
+import { mapActions, mapGetters, mapMutations } from "vuex";
+import DialogButton from "@/components/Dialogs/DialogButton.vue";
 import PrimaryButton from "@/components/buttons/PrimaryButton.vue";
 import axios from "axios";
 
@@ -90,21 +93,7 @@ export default {
         { text: "Redacted", value: "REDACTED" },
       ],
 
-      building: {
-        id: "",
-        project_id: "75ea5a2e-e123-40df-a8c4-bf65386dba16",
-        country: "US",
-        name: "",
-        ref_id: "",
-        address_line1: "",
-        address_line2: "",
-        city: "",
-        state_province: "",
-        postal_code: "",
-        building_type: "",
-        state: "ACTIVE",
-        notes: "",
-      },
+      building: {},
       rules: {
         buildingName: [],
         buildingType: [],
@@ -124,12 +113,16 @@ export default {
       type: Boolean,
       default: false,
     },
+    handleEdit: {
+      type: Function,
+      required: true,
+    },
   },
 
   mixins: [country],
 
   components: {
-    DialogComponent,
+    DialogButton,
     PrimaryButton,
   },
 
@@ -140,16 +133,21 @@ export default {
     "building.refId"(val) {
       this.rules.buildingType = [];
     },
+
+    getInfoBuilding(newValue) {
+      this.building = newValue;
+    },
   },
 
   computed: {
-    ...mapGetters(["getBuildingTypes", "getSelectedBuilding"]),
+    ...mapGetters(["getBuildingTypes", "getInfoBuilding"]),
   },
 
   methods: {
+    ...mapMutations(["setSelectedBuilding"]),
     ...mapActions(["fetchAPIBuildings", "fetchAPIBuildingTypes"]),
 
-    async handleEditBuilding() {
+    async handleEditBuilding(onClose) {
       this.rules.buildingName = [(v) => !!v || "This field is required"];
       this.rules.buildingType = [(v) => !!v || "This field is required"];
 
@@ -166,6 +164,7 @@ export default {
           );
           this.rules.buildingName = [];
           this.rules.buildingType = [];
+          this.setSelectedBuilding([]);
           const query = this.$route.query;
           this.fetchAPIBuildings({
             page: query.page || 1,
@@ -174,6 +173,7 @@ export default {
             desc: query.desc || false,
             building_type: query.building_type || "",
           });
+          onClose();
         } catch (err) {
           console.log(err);
         }
@@ -183,12 +183,6 @@ export default {
 
   mounted() {
     this.fetchAPIBuildingTypes();
-  },
-
-  updated() {
-    if (this.getSelectedBuilding.length > 0) {
-      this.building = this.getSelectedBuilding[0];
-    }
   },
 };
 </script>

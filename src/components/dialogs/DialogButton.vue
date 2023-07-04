@@ -12,6 +12,7 @@
         :icon="icon"
         :tooltip="tooltip"
         :disabled="disabled"
+        :handleEdit="handleEdit"
         :badge="badge"
       />
     </template>
@@ -56,7 +57,7 @@
         class="dialog__button"
         depressed
         fab
-        @click="dialog = !dialog"
+        @click="handleCloseCpnDialog()"
         ><v-icon>mdi-close</v-icon></v-btn
       >
     </v-list-item>
@@ -73,6 +74,7 @@
 <script>
 import IconButton from "@/components/buttons/IconButton.vue";
 import PrimaryButton from "@/components/buttons/PrimaryButton.vue";
+import { mapActions } from "vuex";
 export default {
   data() {
     return {
@@ -94,6 +96,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    handleEdit: {
+      type: Function,
+      required: false,
+    },
     badge: {
       type: Boolean,
       default: false,
@@ -110,6 +116,7 @@ export default {
   },
 
   methods: {
+    ...mapActions(["fetchAPITableSettings"]),
     handleNo() {
       this.dialog1 = false;
     },
@@ -118,6 +125,12 @@ export default {
     },
     onClose() {
       this.dialog = false;
+    },
+    handleCloseCpnDialog() {
+      this.dialog = false;
+      if (this.tooltip === "Table Settings") {
+        this.fetchAPITableSettings();
+      }
     },
   },
 };

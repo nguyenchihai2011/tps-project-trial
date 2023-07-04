@@ -1,16 +1,16 @@
 <template>
   <div class="building__table__header">
-    <table-header
+    <meta-item
       icon="mdi-music-accidental-sharp"
       lable="Total Building Quantity: "
       :data="getMetaBuildings.total_active_quantity + ' Building'"
     />
-    <table-header
+    <meta-item
       icon="mdi-currency-usd"
       lable="Total Cost: "
       :data="'$' + getMetaBuildings.total_skup_extended_cost?.toFixed(2)"
     />
-    <table-header
+    <meta-item
       icon="mdi-memory"
       lable="Total Area: "
       :data="getMetaBuildings.total_room_area + ' sq ft'"
@@ -28,11 +28,11 @@
 </template>
 
 <script>
+import MetaItem from "@/components/Project/Building/MetaTable/MetaItem/MetaItem.vue";
 import { mapGetters } from "vuex";
-import TableHeader from "./table/TableHeader.vue";
 export default {
   components: {
-    TableHeader,
+    MetaItem,
   },
 
   computed: {
