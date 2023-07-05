@@ -55,6 +55,7 @@
                 sortBy: $route.query.sortBy,
                 desc: $route.query.desc,
                 building_type: $route.query.building_type,
+                state: this.getShowStateBuilding,
               })
             "
           >
@@ -71,6 +72,15 @@
         </v-edit-dialog>
 
         <span v-else> {{ item[data.value] }} </span>
+      </td>
+    </template>
+
+    <template v-slot:item.name="{ item }">
+      <td>
+        <span>
+          {{ item.name }}
+        </span>
+        <v-icon v-if="item.has_comments">mdi-message-reply-text</v-icon>
       </td>
     </template>
     <template v-slot:item.building_type="{ item }">
@@ -193,6 +203,7 @@ export default {
     };
   },
   inject: ["getSnackbar", "setSnackbar"],
+
   filters: {
     capitalize: function (value) {
       if (!value) return "";
@@ -210,10 +221,11 @@ export default {
       "getMetaBuildings",
       "getBuildingTypes",
       "getLoading",
-      "getFixedColumns",
+      "getSelectedSetting",
       "getColumnSizes",
       "getSelectedBuilding",
       "getSelectedBuildingLength",
+      "getShowStateBuilding",
     ]),
   },
 
@@ -223,6 +235,19 @@ export default {
         newValue.splice(0, newValue.length - 1);
       }
       this.setSelectedBuilding(newValue.map((item) => item.id));
+      if (newValue.length === 0) {
+        this.setComments([]);
+      }
+      if (newValue.length === 1) {
+        this.fetchAPIComments({
+          content_type: "building",
+          object_id: this.getSelectedBuilding[0],
+          page_size: 25,
+          page: 1,
+          fields:
+            "id,created_by.email,created_by.first_name,created_by.last_name,text,modified_at,created_at,modified_by.user_id",
+        });
+      }
     },
 
     pagination: {
@@ -234,6 +259,7 @@ export default {
           sortBy: this.$route.query.sortBy,
           desc: this.$route.query.desc,
           building_type: this.$route.query.building_type,
+          state: this.getShowStateBuilding,
         });
 
         this.$router.push({
@@ -258,10 +284,10 @@ export default {
     ...mapActions([
       "fetchAPIBuildingsColumns",
       "fetchAPIBuildings",
-
       "fetchAPITableSettings",
+      "fetchAPIComments",
     ]),
-    ...mapMutations(["setSelectedBuilding"]),
+    ...mapMutations(["setSelectedBuilding", "setComments"]),
 
     mapingColumns() {
       let columns = this.getBuildingsColumns;
@@ -331,6 +357,7 @@ export default {
             sortBy: query.sortBy,
             desc: query.desc,
             building_type: query.building_type,
+            state: this.getShowStateBuilding,
           });
         } catch (err) {
           item.ref_id = "Error";
@@ -360,6 +387,7 @@ export default {
             sortBy: query.sortBy || "name",
             desc: query.desc || false,
             building_type: query.building_type || "",
+            state: this.getShowStateBuilding,
           });
         } catch (err) {
           console.log(err);
@@ -391,6 +419,7 @@ export default {
         page_size: this.pagination.itemsPerPage,
         sortBy: this.sortBy,
         building_type: query.building_type,
+        state: this.getShowStateBuilding,
       });
       this.$router.push({
         path: "/projects/75ea5a2e-e123-40df-a8c4-bf65386dba16/buildings",
@@ -453,6 +482,7 @@ export default {
   async created() {
     await this.fetchAPIBuildingsColumns();
     this.mapingColumns();
+    await this.fetchAPITableSettings();
     const query = this.$route.query;
     this.fetchAPIBuildings({
       page: query.page,
@@ -460,8 +490,8 @@ export default {
       sortBy: query.sortBy,
       desc: query.desc,
       building_type: query.building_type,
+      state: this.getShowStateBuilding,
     });
-    this.fetchAPITableSettings();
   },
 
   mounted() {
@@ -478,7 +508,7 @@ export default {
     const table = document.querySelector("table");
     const firstRow = table.rows[0];
 
-    for (var i = 2; i <= this.getFixedColumns; i++) {
+    for (var i = 2; i <= this.getSelectedSetting.fixed_number; i++) {
       let distanceLeft = 0;
       for (var j = 0; j < i - 1; j++) {
         distanceLeft += firstRow.cells[j].offsetWidth;
@@ -493,7 +523,7 @@ export default {
       const item_table = document.querySelectorAll(
         `.resize-table tbody tr > td:nth-child(${i})`
       );
-      if (i === this.getFixedColumns) {
+      if (i === this.getSelectedSetting.fixed_number) {
         document
           .querySelector(`.resize-table th:nth-child(${i})`)
           .style.setProperty("border-right", "thin solid rgba(0, 0, 0, 0.6)");
@@ -504,7 +534,7 @@ export default {
           firstRow.cells[i - 1].offsetWidth
         }px; left: ${distanceLeft}px; z-index: 3 !important; background-color: #fff; border: thin solid rgba(0, 0, 0, 0.12);`;
       });
-      if (i === this.getFixedColumns) {
+      if (i === this.getSelectedSetting.fixed_number) {
         item_table.forEach((element) => {
           element.style.setProperty(
             "border-right",
@@ -518,6 +548,9 @@ export default {
 </script>
 
 <style>
+.v-data-table-header th.sortable.active {
+  color: #017acd !important;
+}
 .building__table__header {
   display: flex;
   padding: 8px;

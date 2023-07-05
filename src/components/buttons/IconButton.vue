@@ -10,7 +10,7 @@
         depressed
         fab
       >
-        <v-badge dot overlap v-if="badge"
+        <v-badge dot overlap bordered v-if="badge"
           ><v-icon> {{ icon }} </v-icon></v-badge
         >
         <v-icon v-else> {{ icon }} </v-icon>

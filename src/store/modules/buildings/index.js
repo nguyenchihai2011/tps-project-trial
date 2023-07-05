@@ -1,4 +1,5 @@
 import axios from "axios";
+import qs from "qs";
 
 const state = {
   buildings: [],
@@ -66,8 +67,11 @@ const actions = {
               : "name",
           project: "75ea5a2e-e123-40df-a8c4-bf65386dba16",
           search: payload.search,
-          state: ["ACTIVE", "INACTIVE", "REDACTED"],
+          state: payload.state,
           building_type: payload.building_type,
+        },
+        paramsSerializer: (params) => {
+          return qs.stringify(params, { arrayFormat: "repeat" });
         },
         signal: payload.signal,
       });

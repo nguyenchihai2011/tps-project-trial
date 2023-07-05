@@ -95,6 +95,16 @@ const getters = {
     return state.selectedSetting;
   },
 
+  getShowStateBuilding: (state) => {
+    let states = ["ACTIVE"];
+    if (state.selectedSetting.show_inactive_state) {
+      states.push("INACTIVE");
+    }
+    if (state.selectedSetting.show_redacted_state) {
+      states.push("REDACTED");
+    }
+    return states;
+  },
   getColumns: (state) => {
     return state.columns;
   },

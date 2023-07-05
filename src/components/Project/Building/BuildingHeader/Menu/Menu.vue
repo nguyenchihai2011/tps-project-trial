@@ -29,81 +29,47 @@
                 v-on="on"
                 height="48px"
                 color="rgba(0,0,0,0.6)"
+                min-width="100%"
+                :disabled="getSelectedBuildingLength !== 1"
                 ><v-list-item-icon>
-                  <v-icon>mdi-message-reply-text</v-icon>
+                  <v-badge
+                    dot
+                    overlap
+                    bordered
+                    v-if="
+                      getSelectedBuildingLength === 1 && getComments.length > 0
+                    "
+                  >
+                    <v-icon>mdi-message-reply-text</v-icon>
+                  </v-badge>
+                  <v-icon v-else>mdi-message-reply-text</v-icon>
                 </v-list-item-icon>
-                <v-list-item-content>
-                  <v-list-item-title>Comment</v-list-item-title>
-                </v-list-item-content></v-btn
+                <v-list-item-content> Comment </v-list-item-content></v-btn
               >
             </div>
           </template>
           <v-card>
             <v-card-title class="text-h5"> Comments for 1 </v-card-title>
             <v-card-text class="menu__comment__list">
-              <v-card-text class="d-flex justify-space-between">
+              <v-card-text
+                v-for="comment in getComments"
+                :key="comment.id"
+                class="d-flex justify-space-between"
+              >
                 <div class="d-flex">
                   <v-avatar color="rgb(225, 6, 0)" size="48">
                     <span class="white--text text-h5">L</span>
                   </v-avatar>
                   <div class="ml-5 comment__item__content">
                     <div>
-                      <span>Local Development :</span> <span>comment</span>
+                      <span
+                        >{{ comment.created_by.first_name }}
+                        {{ comment.created_by.last_name }}:
+                      </span>
+                      <span>{{ comment.text }}</span>
                     </div>
                     <div>
-                      <span>2023-07-03 03:48:11 pm</span>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <v-btn text min-width="36px" class="px-0"
-                    ><v-icon>mdi-pencil</v-icon></v-btn
-                  >
-                  <v-btn text min-width="36px" class="px-0"
-                    ><v-icon>mdi-delete</v-icon></v-btn
-                  >
-                </div>
-              </v-card-text>
-              <v-card-text class="d-flex justify-space-between">
-                <div class="d-flex">
-                  <v-avatar color="rgb(225, 6, 0)" size="48">
-                    <span class="white--text text-h5">L</span>
-                  </v-avatar>
-                  <div class="ml-5 comment__item__content">
-                    <div>
-                      <span>Local Development :</span>
-                      <span class="d-block" style="width: 100%"
-                        >aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</span
-                      >
-                    </div>
-                    <div>
-                      <span>2023-07-03 03:48:11 pm</span>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <v-btn text min-width="36px" class="px-0"
-                    ><v-icon>mdi-pencil</v-icon></v-btn
-                  >
-                  <v-btn text min-width="36px" class="px-0"
-                    ><v-icon>mdi-delete</v-icon></v-btn
-                  >
-                </div>
-              </v-card-text>
-              <v-card-text class="d-flex justify-space-between">
-                <div class="d-flex">
-                  <v-avatar color="rgb(225, 6, 0)" size="48">
-                    <span class="white--text text-h5">L</span>
-                  </v-avatar>
-                  <div class="ml-5 comment__item__content">
-                    <div>
-                      <span>Local Development :</span>
-                      <span class="d-block" style="width: 100%"
-                        >aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</span
-                      >
-                    </div>
-                    <div>
-                      <span>2023-07-03 03:48:11 pm</span>
+                      <span>{{ comment.modified_at | transformDate }}</span>
                     </div>
                   </div>
                 </div>
@@ -170,84 +136,18 @@
           </v-btn>
         </div>
 
-        <v-dialog v-model="dialogDelete" persistent max-width="40vw">
-          <template v-slot:activator="{ on, attrs }">
-            <div>
-              <v-btn
-                text
-                class="px-0 text-capitalize"
-                v-bind="attrs"
-                v-on="on"
-                height="48px"
-                color="rgba(0,0,0,0.6)"
-                :disabled="getSelectedBuildingLength < 1"
-              >
-                <v-list-item-icon>
-                  <v-icon>mdi-delete</v-icon>
-                </v-list-item-icon>
-                <v-list-item-content>
-                  <v-list-item-title>Permanently Delete</v-list-item-title>
-                </v-list-item-content>
-              </v-btn>
-            </div>
-          </template>
-          <v-card>
-            <v-card-title class="text-h5">
-              Permanently Delete Building
-            </v-card-title>
-            <v-card-text
-              ><p>
-                You are about to PERMANENTLY delete 1 building. If any items in
-                this building are assigned to a request approval, both items and
-                requests will be deleted and CANNOT be recovered. Do you want to
-                continue?
-              </p>
-              <p class="mb-0">
-                If not, click "Redact" for a recoverable selection.
-              </p></v-card-text
-            >
-            <v-card-actions>
-              <v-spacer></v-spacer>
-
-              <v-btn
-                color="primary"
-                outlined
-                @click="dialogDelete = false"
-                class="text-capitalize"
-              >
-                No, Cancel
-              </v-btn>
-
-              <v-btn
-                color="primary"
-                @click="handleRedacted()"
-                class="text-capitalize"
-              >
-                Redact
-              </v-btn>
-
-              <v-btn
-                color="error"
-                @click="handleDelete()"
-                class="text-capitalize"
-              >
-                Yes, Permanently Delete
-              </v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-dialog>
+        <menu-delete></menu-delete>
       </v-list-item>
     </v-list>
   </v-menu>
 </template>
 
 <script>
+import MenuDelete from "./Delete/Delete.vue";
 import IconButton from "@/components/buttons/IconButton.vue";
-import { mapActions, mapGetters, mapMutations } from "vuex";
+import { mapActions, mapGetters } from "vuex";
 import axios from "axios";
 export default {
-  inject: ["getSnackbar", "setSnackbar"],
-
   data() {
     return {
       textContent: "",
@@ -263,7 +163,6 @@ export default {
         { title: "Export Table", icon: "mdi-file-export" },
       ],
       dialog: false,
-      dialogDelete: false,
     };
   },
   props: {
@@ -278,87 +177,46 @@ export default {
   },
 
   components: {
+    MenuDelete,
     IconButton,
   },
 
   computed: {
-    ...mapGetters(["getSelectedBuildingLength", "getSelectedBuilding"]),
+    ...mapGetters([
+      "getSelectedBuildingLength",
+      "getSelectedBuilding",
+      "getComments",
+    ]),
+  },
+
+  filters: {
+    transformDate: function (value) {
+      const date = new Date(value);
+      const options = {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      };
+      return (
+        date
+          .toLocaleString("ja-JP", options)
+          .replace(",", "")
+          .replaceAll("/", "-") +
+        " " +
+        (date.getHours() >= 12 ? "pm" : "am")
+      );
+    },
   },
 
   methods: {
-    ...mapMutations(["setSelectedBuilding"]),
     ...mapActions([
       "fetchAPIBuildingsColumns",
       "fetchAPIBuildings",
       "fetchAPITableSettings",
     ]),
-    async handleDelete() {
-      const response = await axios.delete(
-        "/api/buildings/bulk/",
-        {
-          data: { ids: this.getSelectedBuilding },
-        },
-        {
-          headers: {
-            "x-camelcase": 1,
-          },
-        }
-      );
-
-      this.setSnackbar(
-        true,
-        "Successful! Your buildings has been deleted.",
-        "success",
-        5000
-      );
-      this.setSelectedBuilding([]);
-      this.fetchAPIBuildingsColumns();
-      const query = this.$route.query;
-      this.fetchAPIBuildings({
-        page: query.page,
-        page_size: query.pageSize,
-        sortBy: query.sortBy,
-        desc: query.desc,
-        building_type: query.building_type,
-      });
-      this.fetchAPITableSettings();
-      this.dialogDelete = false;
-    },
-
-    async handleRedacted() {
-      const response = await axios.patch(
-        "/api/buildings/bulk/",
-        {
-          change_note: null,
-          ids: this.getSelectedBuilding,
-          project_ids: "75ea5a2e-e123-40df-a8c4-bf65386dba16",
-          state: "REDACTED",
-        },
-        {
-          headers: {
-            "x-camelcase": 1,
-          },
-        }
-      );
-      this.setSnackbar(
-        true,
-        "Successful! Your buildings has been redacted.",
-        "success",
-        5000
-      );
-      this.dialogDelete = false;
-      this.setSelectedBuilding([]);
-      this.fetchAPIBuildingsColumns();
-      const query = this.$route.query;
-      this.fetchAPIBuildings({
-        page: query.page,
-        page_size: query.pageSize,
-        sortBy: query.sortBy,
-        desc: query.desc,
-        building_type: query.building_type,
-      });
-      this.fetchAPITableSettings();
-    },
 
     async handleSubmitComment() {
       try {
