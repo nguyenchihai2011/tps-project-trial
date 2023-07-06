@@ -3,7 +3,7 @@
     :icon="icon"
     :tooltip="tooltip"
     :disabled="disabled"
-    :handleEdit="handleEdit"
+    :handleClick="handleClick"
     :dialogClose="true"
   >
     <template v-slot:content>
@@ -17,7 +17,8 @@
           ></v-text-field>
           <v-select
             v-model="building.building_type"
-            :items="getBuildingTypes"
+            :items="s_building_type"
+            :loading="s_loading"
             :rules="rules.buildingType"
             label="Building Type*"
           ></v-select>
@@ -113,7 +114,7 @@ export default {
       type: Boolean,
       default: false,
     },
-    handleEdit: {
+    handleClick: {
       type: Function,
       required: true,
     },
@@ -134,18 +135,23 @@ export default {
       this.rules.buildingType = [];
     },
 
-    getInfoBuilding(newValue) {
+    s_info_building(newValue) {
       this.building = newValue;
     },
   },
 
   computed: {
-    ...mapGetters(["getBuildingTypes", "getInfoBuilding"]),
+    ...mapGetters({
+      s_building_type: "getBuildingTypes",
+      s_info_building: "getInfoBuilding",
+      s_show_state: "getShowStateBuilding",
+      s_loading: "getBuildingTypesLoading",
+    }),
   },
 
   methods: {
     ...mapMutations(["setSelectedBuilding"]),
-    ...mapActions(["fetchAPIBuildings", "fetchAPIBuildingTypes"]),
+    ...mapActions(["fetchAPIBuildings"]),
 
     async handleEditBuilding(onClose) {
       this.rules.buildingName = [(v) => !!v || "This field is required"];
@@ -172,6 +178,7 @@ export default {
             sortBy: query.sortBy || "name",
             desc: query.desc || false,
             building_type: query.building_type || "",
+            state: this.s_show_state,
           });
           onClose();
         } catch (err) {
@@ -179,10 +186,6 @@ export default {
         }
       }
     },
-  },
-
-  mounted() {
-    this.fetchAPIBuildingTypes();
   },
 };
 </script>

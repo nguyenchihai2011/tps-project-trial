@@ -49,19 +49,15 @@ const getters = {
       },
       ...state.settings,
     ];
-    return settingArr.map((set, index) => {
-      if (set.name === undefined) {
-        set.name = "Custom" + index;
+    return settingArr.map((setting, index) => {
+      if (setting.name === undefined) {
+        setting.name = "Custom" + index;
       }
       return {
         id: index,
-        ...set,
+        ...setting,
       };
     });
-  },
-
-  getSettingsNotDefault: (state) => {
-    return state.settings;
   },
 
   getSettingsCopy: (state) => {
@@ -83,10 +79,10 @@ const getters = {
       },
       ...state.settingsCopy,
     ];
-    return settingArr.map((set, index) => {
+    return settingArr.map((setting, index) => {
       return {
         id: index,
-        ...set,
+        ...setting,
       };
     });
   },
@@ -105,15 +101,6 @@ const getters = {
     }
     return states;
   },
-  getColumns: (state) => {
-    return state.columns;
-  },
-  getFixedColumns: (state) => {
-    return state.fixedColumns;
-  },
-  getColumnSizes: (state) => {
-    return state.columnSizes;
-  },
 };
 
 const mutations = {
@@ -128,15 +115,6 @@ const mutations = {
   },
   setSelectedSetting: (state, payload) => {
     state.selectedSetting = payload;
-  },
-  setColumns: (state, payload) => {
-    state.columns = payload;
-  },
-  setFixedColumns: (state, payload) => {
-    state.fixedColumns = payload;
-  },
-  setColumnSizes: (state, payload) => {
-    state.columnSizes = payload;
   },
 };
 
@@ -155,15 +133,6 @@ const actions = {
           id: data.active_idx + 1,
           ...data.table_settings[data.active_idx],
         });
-        commit("setColumns", data.table_settings[data.active_idx].columns);
-        commit(
-          "setFixedColumns",
-          data.table_settings[data.active_idx].fixed_number
-        );
-        commit(
-          "setColumnSizes",
-          data.table_settings[data.active_idx].column_sizes
-        );
       }
     } catch (error) {
       console.log(error);

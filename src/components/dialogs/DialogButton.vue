@@ -12,7 +12,7 @@
         :icon="icon"
         :tooltip="tooltip"
         :disabled="disabled"
-        :handleEdit="handleEdit"
+        :handleClick="handleClick"
         :badge="badge"
       />
     </template>
@@ -96,7 +96,7 @@ export default {
       type: Boolean,
       default: false,
     },
-    handleEdit: {
+    handleClick: {
       type: Function,
       required: false,
     },

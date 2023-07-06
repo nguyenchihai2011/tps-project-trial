@@ -8,12 +8,16 @@
     />
     <search />
     <div class="d-flex align-center">
-      <create icon="mdi-plus" tooltip="Add/Create" />
+      <create
+        icon="mdi-plus"
+        tooltip="Add/Create"
+        :handleClick="handleCreate"
+      />
       <edit
         icon="mdi-pencil"
         tooltip="Edit"
-        :disabled="getSelectedBuildingLength != 1"
-        :handleEdit="handleEdit"
+        :disabled="s_quantity_selected_building !== 1"
+        :handleClick="handleEdit"
       />
       <filters icon="mdi-filter-variant" tooltip="Filter" />
       <table-settings icon="mdi-cog" tooltip="Table Settings" />
@@ -30,7 +34,7 @@ import Filters from "./Filters/Filters.vue";
 import TableSettings from "./TableSettings/TableSettings.vue";
 import MenuBuilding from "./Menu/Menu.vue";
 import HistoryTaskModal from "./History/HistoryTaskModal.vue";
-import { mapGetters, mapMutations } from "vuex";
+import { mapGetters, mapMutations, mapActions } from "vuex";
 import axios from "axios";
 
 export default {
@@ -45,17 +49,25 @@ export default {
   },
 
   computed: {
-    ...mapGetters(["getSelectedBuildingLength", "getSelectedBuilding"]),
+    ...mapGetters({
+      s_selected_building_ids: "getSelectedBuildingIds",
+      s_quantity_selected_building: "getQuantitySelectedBuilding",
+    }),
   },
 
   methods: {
     ...mapMutations(["setInfoBuilding"]),
+    ...mapActions(["fetchAPIBuildingTypes"]),
+    async handleCreate() {
+      this.fetchAPIBuildingTypes();
+    },
     async handleEdit() {
       const response = await axios.get(
-        `/api/buildings/${this.getSelectedBuilding[0]}/`
+        `/api/buildings/${s_selected_building_ids[0]}/`
       );
       response.data.building_type = response.data.building_type.id;
       this.setInfoBuilding(response.data);
+      this.fetchAPIBuildingTypes();
     },
   },
 };

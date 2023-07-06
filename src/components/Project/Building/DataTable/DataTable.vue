@@ -1,20 +1,20 @@
 <template>
   <v-data-table
     :headers="usedColumns"
-    :items="getBuildings"
+    :items="s_buildings"
     :items-per-page="pagination.itemsPerPage"
     :page="pagination.page"
-    :server-items-length="getMetaBuildings.total_results"
+    :server-items-length="s_meta.total_results"
     @pagination="handlePagination"
     show-select
     v-model="selectedBuilding"
     fixed-header
-    :loading="getLoading"
+    :loading="s_loading"
     class="resize-table"
     :footer-props="{
       'items-per-page-options': [5, 10, 25, 50],
-      disablePagination: getLoading,
-      disableItemsPerPage: getLoading,
+      disablePagination: s_loading,
+      disableItemsPerPage: s_loading,
     }"
     ref="dataTable"
   >
@@ -31,19 +31,15 @@
       <div class="resize-handle" @mousedown="handleResizeMousedown"></div>
     </template>
 
-    <template
-      v-for="(data, index) in usedColumns"
-      v-slot:[`item.${data.value}`]="{ item }"
-    >
+    <template v-slot:item.ref_id="{ item }">
       <td>
         <v-edit-dialog
-          v-if="data.edit === 'true'"
-          :return-value="item[data.value]"
+          :return-value="item.ref_id"
           @open="handleCopyData(item)"
           @close="handleSaveData(item)"
         >
-          <span v-if="item[data.value] != 'Error'">
-            {{ item[data.value] || "——" }}
+          <span v-if="item.ref_id !== 'Error'">
+            {{ item.ref_id || "——" }}
           </span>
           <span
             v-else
@@ -55,7 +51,7 @@
                 sortBy: $route.query.sortBy,
                 desc: $route.query.desc,
                 building_type: $route.query.building_type,
-                state: this.getShowStateBuilding,
+                state: s_show_state,
               })
             "
           >
@@ -65,13 +61,11 @@
 
           <template v-slot:input>
             <v-text-field
-              v-model="item[data.value]"
+              v-model="item.ref_id"
               label="Building ID"
             ></v-text-field>
           </template>
         </v-edit-dialog>
-
-        <span v-else> {{ item[data.value] }} </span>
       </td>
     </template>
 
@@ -94,7 +88,7 @@
           <template v-slot:input>
             <v-select
               v-model="selectedBuildingType"
-              :items="getBuildingTypes"
+              :items="s_building_type"
               :menu-props="{ bottom: true, offsetY: true }"
               label="Select a building type*"
             >
@@ -144,10 +138,7 @@
             <v-select
               v-model="pagination.page"
               :items="
-                Array.from(
-                  { length: getMetaBuildings.total_pages },
-                  (_, i) => i + 1
-                )
+                Array.from({ length: s_meta.total_pages }, (_, i) => i + 1)
               "
               item-text="key"
               item-value="value"
@@ -160,18 +151,17 @@
                 color: 'rgba(0, 0, 0, 0.87)',
                 width: 46 + 'px',
               }"
-              :disabled="getLoading"
+              :disabled="s_loading"
             ></v-select>
           </div>
         </v-row>
         <v-row align="center" class="ml-14 mr-8"
-          >{{ (getMetaBuildings.page - 1) * getMetaBuildings.page_size + 1 }}-{{
-            getMetaBuildings.total_results >
-            getMetaBuildings.page * getMetaBuildings.page_size
-              ? getMetaBuildings.page * getMetaBuildings.page_size
-              : getMetaBuildings.total_results
+          >{{ (s_meta.page - 1) * s_meta.page_size + 1 }}-{{
+            s_meta.total_results > s_meta.page * s_meta.page_size
+              ? s_meta.page * s_meta.page_size
+              : s_meta.total_results
           }}
-          of {{ getMetaBuildings.total_results }}
+          of {{ s_meta.total_results }}
         </v-row>
       </v-row>
     </template>
@@ -182,21 +172,20 @@
 import { mapActions, mapGetters, mapMutations } from "vuex";
 import axios from "axios";
 import columns from "@/mixins/columns.js";
+import tableSetting from "@/requestHttp/tableSetting";
 export default {
   data() {
     return {
-      buildingsColumns: [],
       pagination: {
         page: +this.$route.query.page || 1,
         itemsPerPage: +this.$route.query.pageSize || 50,
       },
-      selectedBuilding: [],
       scrollShow: false,
       selectedBuildingType: "",
       ref_id: "",
       resizeInfo: {
         pageX: Number,
-        curCol: null,
+        curCol: undefined,
         curColWidth: Number,
         diffX: Number,
       },
@@ -215,41 +204,38 @@ export default {
   mixins: [columns],
 
   computed: {
-    ...mapGetters([
-      "getBuildingsColumns",
-      "getBuildings",
-      "getMetaBuildings",
-      "getBuildingTypes",
-      "getLoading",
-      "getSelectedSetting",
-      "getColumnSizes",
-      "getSelectedBuilding",
-      "getSelectedBuildingLength",
-      "getShowStateBuilding",
-    ]),
+    ...mapGetters({
+      s_buildings: "getBuildings",
+      s_meta: "getMetaBuildings",
+      s_building_type: "getBuildingTypes",
+      s_loading: "getLoading",
+      s_selected_setting: "getSelectedSetting",
+      s_selected_building: "getSelectedBuilding",
+      s_selected_building_ids: "getSelectedBuildingIds",
+      s_show_state: "getShowStateBuilding",
+      s_table_settings: "getTableSettings",
+    }),
+    selectedBuilding: {
+      get() {
+        return this.s_selected_building;
+      },
+      set(newValue) {
+        this.setSelectedBuilding(newValue);
+        if (newValue.length === 1) {
+          this.fetchAPIComments({
+            content_type: "building",
+            object_id: this.s_selected_building_ids[0],
+            page_size: 25,
+            page: 1,
+            fields:
+              "id,created_by.email,created_by.first_name,created_by.last_name,text,modified_at,created_at,modified_by.user_id",
+          });
+        }
+      },
+    },
   },
 
   watch: {
-    selectedBuilding(newValue) {
-      if (this.getSelectedBuildingLength === 0) {
-        newValue.splice(0, newValue.length - 1);
-      }
-      this.setSelectedBuilding(newValue.map((item) => item.id));
-      if (newValue.length === 0) {
-        this.setComments([]);
-      }
-      if (newValue.length === 1) {
-        this.fetchAPIComments({
-          content_type: "building",
-          object_id: this.getSelectedBuilding[0],
-          page_size: 25,
-          page: 1,
-          fields:
-            "id,created_by.email,created_by.first_name,created_by.last_name,text,modified_at,created_at,modified_by.user_id",
-        });
-      }
-    },
-
     pagination: {
       deep: true,
       handler: function (newValue) {
@@ -259,7 +245,7 @@ export default {
           sortBy: this.$route.query.sortBy,
           desc: this.$route.query.desc,
           building_type: this.$route.query.building_type,
-          state: this.getShowStateBuilding,
+          state: this.s_show_state,
         });
 
         this.$router.push({
@@ -275,22 +261,22 @@ export default {
       },
     },
 
-    getBuildingsColumns(newValue) {
+    s_selected_setting() {
       this.mapingColumns();
     },
   },
 
   methods: {
     ...mapActions([
-      "fetchAPIBuildingsColumns",
       "fetchAPIBuildings",
+      "fetchAPIBuildingTypes",
       "fetchAPITableSettings",
       "fetchAPIComments",
     ]),
     ...mapMutations(["setSelectedBuilding", "setComments"]),
 
     mapingColumns() {
-      let columns = this.getBuildingsColumns;
+      let columns = this.s_table_settings;
       if (columns.active_idx !== -1) {
         this.filterColumns(columns.table_settings[columns.active_idx]);
       } else {
@@ -357,7 +343,7 @@ export default {
             sortBy: query.sortBy,
             desc: query.desc,
             building_type: query.building_type,
-            state: this.getShowStateBuilding,
+            state: this.s_show_state,
           });
         } catch (err) {
           item.ref_id = "Error";
@@ -387,7 +373,7 @@ export default {
             sortBy: query.sortBy || "name",
             desc: query.desc || false,
             building_type: query.building_type || "",
-            state: this.getShowStateBuilding,
+            state: this.s_show_state,
           });
         } catch (err) {
           console.log(err);
@@ -419,7 +405,7 @@ export default {
         page_size: this.pagination.itemsPerPage,
         sortBy: this.sortBy,
         building_type: query.building_type,
-        state: this.getShowStateBuilding,
+        state: this.s_show_state,
       });
       this.$router.push({
         path: "/projects/75ea5a2e-e123-40df-a8c4-bf65386dba16/buildings",
@@ -459,17 +445,12 @@ export default {
         for (var i = 0; i < firstRow.cells.length; i++) {
           column_sizes.push(firstRow.cells[i].offsetWidth);
         }
-        const response = await axios.get(
-          "/api/org-members/63c7f081-ef87-4421-bc5e-ca4a9b891b6b/preferences/buildingsColumns/"
-        );
-        const data = response.data.value;
-        data.table_settings[data.active_idx].column_sizes = column_sizes;
 
-        const res = await axios.put(
-          "/api/org-members/63c7f081-ef87-4421-bc5e-ca4a9b891b6b/preferences/buildingsColumns/",
-          { value: data }
-        );
-        console.log("mouseup!");
+        const active_idx = this.s_table_settings.active_idx;
+        let table_settings = this.s_table_settings.table_settings;
+        table_settings[this.s_table_settings.active_idx].column_sizes =
+          column_sizes;
+        tableSetting.changeSetting(active_idx, table_settings);
 
         this.resizeInfo.curCol = undefined;
         this.resizeInfo.pageX = undefined;
@@ -480,9 +461,9 @@ export default {
   },
 
   async created() {
-    await this.fetchAPIBuildingsColumns();
-    this.mapingColumns();
     await this.fetchAPITableSettings();
+    this.mapingColumns();
+    this.fetchAPIBuildingTypes();
     const query = this.$route.query;
     this.fetchAPIBuildings({
       page: query.page,
@@ -490,7 +471,7 @@ export default {
       sortBy: query.sortBy,
       desc: query.desc,
       building_type: query.building_type,
-      state: this.getShowStateBuilding,
+      state: this.s_show_state,
     });
   },
 
@@ -508,7 +489,7 @@ export default {
     const table = document.querySelector("table");
     const firstRow = table.rows[0];
 
-    for (var i = 2; i <= this.getSelectedSetting.fixed_number; i++) {
+    for (var i = 2; i <= this.s_selected_setting.fixed_number; i++) {
       let distanceLeft = 0;
       for (var j = 0; j < i - 1; j++) {
         distanceLeft += firstRow.cells[j].offsetWidth;
@@ -523,7 +504,7 @@ export default {
       const item_table = document.querySelectorAll(
         `.resize-table tbody tr > td:nth-child(${i})`
       );
-      if (i === this.getSelectedSetting.fixed_number) {
+      if (i === this.s_selected_setting.fixed_number) {
         document
           .querySelector(`.resize-table th:nth-child(${i})`)
           .style.setProperty("border-right", "thin solid rgba(0, 0, 0, 0.6)");
@@ -534,7 +515,7 @@ export default {
           firstRow.cells[i - 1].offsetWidth
         }px; left: ${distanceLeft}px; z-index: 3 !important; background-color: #fff; border: thin solid rgba(0, 0, 0, 0.12);`;
       });
-      if (i === this.getSelectedSetting.fixed_number) {
+      if (i === this.s_selected_setting.fixed_number) {
         item_table.forEach((element) => {
           element.style.setProperty(
             "border-right",

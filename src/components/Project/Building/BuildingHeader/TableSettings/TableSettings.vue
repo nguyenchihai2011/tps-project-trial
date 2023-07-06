@@ -14,12 +14,13 @@
             <v-combobox
               v-if="!isCreate"
               v-model="tableSetting"
-              :items="getSettings"
+              :items="s_settings"
               label="Setting Name"
               :menu-props="{ offsetY: true }"
               item-text="name"
               item-value="id"
               return-object
+              @change="handleChange"
             >
               <template v-slot:item="{ item }">
                 <div>{{ item.name }}</div>
@@ -123,9 +124,10 @@
               label="Select All"
               hide-details
               color="primary"
-              v-model="selectAll"
-              :indeterminate="!selectAll && tableSetting?.columns?.length > 0"
+              v-model="selectedAll"
+              :indeterminate="!selectedAll && tableSetting?.columns?.length > 0"
               :disabled="isDisabled"
+              @change="handleSelectedAll()"
             ></v-checkbox>
 
             <v-checkbox
@@ -238,7 +240,6 @@ import PrimaryButton from "@/components/buttons/PrimaryButton.vue";
 import draggable from "vuedraggable";
 import columns from "@/mixins/columns";
 import { mapActions, mapGetters, mapMutations } from "vuex";
-import axios from "axios";
 import tableSettingAPI from "@/requestHttp/tableSetting";
 export default {
   data() {
@@ -265,7 +266,7 @@ export default {
       isUpdate: false,
       isSaveAsNew: true,
       search: "",
-      selectAll: false,
+      selectedAll: false,
       currentID: 0,
       currentName: "Default",
     };
@@ -290,41 +291,23 @@ export default {
   mixins: [columns],
 
   watch: {
-    selectAll(newValue) {
-      if (newValue) {
-        this.tableSetting.columns = this.columns.map((item) => item.value);
-      } else {
-        this.tableSetting.columns = [];
-      }
-    },
-
     tableSetting: {
       handler(newValue) {
-        if (typeof newValue === "string") {
-          this.tableSetting = this.getSettings[this.currentID];
-          this.tableSetting.name = newValue;
-          this.tableSettings.splice(this.currentID, 1, this.tableSetting);
-        }
-        this.currentID = this.tableSetting.id;
-        if (newValue?.name !== this.getSettingsCopy[this.currentID].name) {
-          this.isSaveAsNew = false;
+        // watch trạng thái của selectedAll
+        if (newValue.columns?.length === this.columns.length) {
+          this.selectedAll = true;
         } else {
-          this.isSaveAsNew = true;
+          this.selectedAll = false;
         }
 
-        if (newValue?.columns?.length === this.columns.length) {
-          this.selectAll = true;
-        } else {
-          this.selectAll = false;
-        }
-
+        // kiểm tra trạng thái setting xem có cho phép chỉnh sửa hay không (isDisabled) và có thay đổi gì không (isUpdate)
         if (this.tableSetting.id === 0) {
           this.isDisabled = true;
         } else {
           this.isDisabled = false;
           const compareObject = isEqual(
             this.tableSetting,
-            this.getSettingsCopy[this.tableSetting.id]
+            this.s_settings_copy[this.tableSetting.id]
           );
           if (compareObject) {
             this.isUpdate = false;
@@ -336,8 +319,8 @@ export default {
       deep: true,
     },
 
-    getSelectedSetting() {
-      if (this.getSelectedSetting.id === 0) {
+    s_selected_setting() {
+      if (this.s_selected_setting.id === 0) {
         this.tableSetting = {
           id: 0,
           columns: [
@@ -355,22 +338,23 @@ export default {
           show_redacted_state: false,
         };
       } else {
-        this.tableSetting = this.getSelectedSetting;
+        this.tableSetting = this.s_selected_setting;
       }
     },
 
-    getSettings() {
-      this.tableSettings = this.getSettings;
+    s_settings() {
+      this.tableSettings = this.s_settings;
     },
   },
 
   computed: {
-    ...mapGetters([
-      "getTableSettings",
-      "getSettings",
-      "getSettingsCopy",
-      "getSelectedSetting",
-    ]),
+    ...mapGetters({
+      s_show_state: "getShowStateBuilding",
+      s_table_settings: "getTableSettings",
+      s_selected_setting: "getSelectedSetting",
+      s_settings: "getSettings",
+      s_settings_copy: "getSettingsCopy",
+    }),
 
     textColumns() {
       return this.tableSetting.columns?.map((value) =>
@@ -380,19 +364,20 @@ export default {
   },
 
   methods: {
-    ...mapMutations(["setTableSettings", "setSettings", "setSettingsCopy"]),
-    ...mapActions([
-      "fetchAPIBuildingsColumns",
-      "fetchAPITableSettings",
-      "fetchAPIBuildings",
+    ...mapMutations([
+      "setTableSettings",
+      "setSettings",
+      "setSettingsCopy",
+      "setSearch",
     ]),
+    ...mapActions(["fetchAPITableSettings", "fetchAPIBuildings"]),
 
-    saveAndApply(onClose) {
+    async saveAndApply(onClose) {
       let active_idx = this.tableSetting.id - 1;
-      let table_settings = [...this.getTableSettings.table_settings];
+      let table_settings = this.s_table_settings.table_settings;
       tableSettingAPI.changeSetting(active_idx, table_settings);
-      this.fetchAPITableSettings();
-      this.fetchAPIBuildingsColumns();
+      await this.fetchAPITableSettings();
+      this.setSearch("");
       const query = this.$route.query;
       this.fetchAPIBuildings({
         page: query.page,
@@ -400,7 +385,9 @@ export default {
         sortBy: query.sortBy,
         desc: query.desc,
         building_type: query.building_type,
+        state: this.s_show_state,
       });
+
       onClose();
     },
 
@@ -427,13 +414,13 @@ export default {
     cancelCreate() {
       this.isCreate = false;
       this.isUpdate = false;
-      this.tableSetting = { ...this.getSelectedSetting };
+      this.tableSetting = this.s_selected_setting;
     },
 
     createSetting() {
-      let active_idx = this.getTableSettings.active_idx;
+      let active_idx = this.s_table_settings.active_idx;
       let table_settings = [
-        ...this.getTableSettings.table_settings,
+        ...this.s_table_settings.table_settings,
         this.tableSetting,
       ];
       tableSettingAPI.changeSetting(active_idx, table_settings);
@@ -441,7 +428,7 @@ export default {
       Vue.set(
         this.tableSetting,
         "id",
-        this.getTableSettings.table_settings.length + 1
+        this.s_table_settings.table_settings.length + 1
       );
 
       this.setSettings(table_settings);
@@ -453,10 +440,10 @@ export default {
       this.isCreate = false;
     },
 
-    createApplySetting(onClose) {
-      let active_idx = this.getTableSettings.table_settings.length;
+    async createApplySetting(onClose) {
+      let active_idx = this.s_table_settings.table_settings.length;
       let table_settings = [
-        ...this.getTableSettings.table_settings,
+        ...this.s_table_settings.table_settings,
         this.tableSetting,
       ];
       tableSettingAPI.changeSetting(active_idx, table_settings);
@@ -464,10 +451,11 @@ export default {
       Vue.set(
         this.tableSetting,
         "id",
-        this.getTableSettings.table_settings.length + 1
+        this.s_table_settings.table_settings.length + 1
       );
       this.isCreate = false;
-      this.fetchAPIBuildingsColumns();
+      await this.fetchAPITableSettings();
+      this.setSearch("");
       const query = this.$route.query;
       this.fetchAPIBuildings({
         page: query.page,
@@ -475,15 +463,15 @@ export default {
         sortBy: query.sortBy,
         desc: query.desc,
         building_type: query.building_type,
+        state: this.s_show_state,
       });
-      this.fetchAPITableSettings();
       onClose();
     },
 
     async updateSetting() {
       let tableSettingNoId = Object.assign({}, this.tableSetting);
       delete tableSettingNoId.id;
-      let updateSettings = this.getTableSettings.table_settings;
+      let updateSettings = this.s_table_settings.table_settings;
       updateSettings.splice(this.tableSetting.id - 1, 1, tableSettingNoId);
 
       let active_idx = this.tableSetting.id - 1;
@@ -503,9 +491,9 @@ export default {
       let newSetting = Object.assign({}, this.tableSetting);
       delete newSetting.id;
 
-      let active_idx = this.getTableSettings.active_idx;
+      let active_idx = this.s_table_settings.active_idx;
       let table_settings = [
-        ...this.getTableSettings.table_settings,
+        ...this.s_table_settings.table_settings,
         newSetting,
       ];
       tableSettingAPI.changeSetting(active_idx, table_settings);
@@ -514,12 +502,36 @@ export default {
       this.fetchAPITableSettings();
       onClose();
     },
+
+    handleSelectedAll() {
+      if (this.selectedAll) {
+        this.tableSetting.columns = this.columns.map((item) => item.value);
+      } else {
+        this.tableSetting.columns = [];
+      }
+    },
+
+    handleChange(value) {
+      if (typeof value === "string") {
+        this.tableSetting = this.s_settings[this.currentID];
+        this.tableSetting.name = value;
+        this.tableSettings.splice(this.currentID, 1, this.tableSetting);
+        this.isSaveAsNew = false;
+      } else if (value.name !== this.s_settings_copy[value.id].name) {
+        this.currentID = value.id;
+        this.isSaveAsNew = false;
+      } else {
+        this.currentID = value.id;
+        this.isSaveAsNew = true;
+      }
+    },
   },
 
   async created() {
     await this.fetchAPITableSettings();
-    this.tableSetting = { ...this.getSelectedSetting };
-    this.tableSettings = this.getSettings;
+    this.tableSetting = this.s_selected_setting;
+    this.tableSettings = this.s_settings;
+    this.currentID = this.s_selected_setting.id;
   },
 };
 </script>

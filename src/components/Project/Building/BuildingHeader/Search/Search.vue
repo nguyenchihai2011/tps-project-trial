@@ -15,7 +15,7 @@
 
 <script>
 import debounce from "@/utils/debounce.js";
-import { mapActions } from "vuex";
+import { mapActions, mapGetters, mapMutations } from "vuex";
 export default {
   data() {
     return {
@@ -24,24 +24,38 @@ export default {
     };
   },
 
+  computed: {
+    ...mapGetters({
+      s_search: "getSearch",
+      s_show_state: "getShowStateBuilding",
+    }),
+  },
+
   watch: {
     search: debounce(function (newValue) {
       // Huỷ request trước nếu tồn tại
       this.controller.abort();
       // Tạo mới AbortController
       this.controller = new AbortController();
+      this.setSearch(newValue);
+      console.log("search:", this.s_show_state);
       this.fetchAPIBuildings({
         page: this.$route.query.page,
         page_size: this.$route.query.pageSize,
         sortBy: "name",
         building_type: this.$route.query.building_type,
-        search: newValue,
+        state: this.s_show_state,
         signal: this.controller.signal,
       });
     }, 1000),
+
+    s_search(newValue) {
+      this.search = newValue;
+    },
   },
 
   methods: {
+    ...mapMutations(["setSearch"]),
     ...mapActions(["fetchAPIBuildings"]),
   },
 };

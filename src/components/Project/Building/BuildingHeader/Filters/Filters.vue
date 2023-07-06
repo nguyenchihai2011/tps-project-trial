@@ -1,6 +1,6 @@
 <template>
-  <dialog-button :icon="icon" :tooltip="tooltip" :badge="!!selectFilter">
-    <template slot="content">
+  <dialog-button :icon="icon" :tooltip="tooltip" :badge="!!selectedFilter">
+    <template v-slot:content>
       <v-text-field
         prepend-inner-icon="mdi-magnify"
         label="Search filters..."
@@ -16,15 +16,15 @@
         <v-expansion-panel>
           <v-expansion-panel-header
             ><label
-              ><v-icon v-if="!!selectFilter" color="green" left
+              ><v-icon v-if="!!selectedFilter" color="green" left
                 >mdi-check</v-icon
               >Building Type</label
             ></v-expansion-panel-header
           >
           <v-expansion-panel-content>
             <v-select
-              v-model="selectFilter"
-              :items="getBuildingTypes"
+              v-model="selectedFilter"
+              :items="s_building_type"
               :menu-props="{ bottom: true, offsetY: true }"
               label="Building Type"
               chips
@@ -36,18 +36,27 @@
         </v-expansion-panel>
       </v-expansion-panels>
     </template>
-    <template>
+    <template v-slot:default="{ onClose }">
       <v-container class="px-0">
         <v-row>
           <v-col lg="6" class="pr-1"
-            ><primary-button
-              text="Clear Filters"
+            ><v-btn
+              class="text-capitalize"
+              color="primary"
               outlined
-              minWidth="100%"
-            ></primary-button
-          ></v-col>
+              min-width="100%"
+              @click="handleClearFilter()"
+              >Clear Filters
+            </v-btn></v-col
+          >
           <v-col lg="6" class="pl-1">
-            <primary-button text="Done" minWidth="100%"> </primary-button>
+            <v-btn
+              class="text-capitalize"
+              color="primary"
+              min-width="100%"
+              @click="onClose()"
+              >Done
+            </v-btn>
           </v-col>
         </v-row>
       </v-container>
@@ -58,11 +67,10 @@
 <script>
 import { mapActions, mapGetters } from "vuex";
 import DialogButton from "@/components/Dialogs/DialogButton.vue";
-import PrimaryButton from "@/components/buttons/PrimaryButton.vue";
 export default {
   data() {
     return {
-      selectFilter: this.$route.query.building_type || "",
+      selectedFilter: this.$route.query.building_type || "",
     };
   },
   props: {
@@ -77,15 +85,17 @@ export default {
   },
   components: {
     DialogButton,
-    PrimaryButton,
   },
 
   computed: {
-    ...mapGetters(["getBuildingTypes"]),
+    ...mapGetters({
+      s_building_type: "getBuildingTypes",
+      s_show_state: "getShowStateBuilding",
+    }),
   },
 
   watch: {
-    selectFilter(newValue) {
+    selectedFilter(newValue) {
       this.fetchAPIBuildings({
         page: 1,
         page_size: this.$route.query.pageSize,
@@ -93,6 +103,7 @@ export default {
         desc: this.$route.query.desc,
         project: "75ea5a2e-e123-40df-a8c4-bf65386dba16",
         building_type: newValue,
+        state: this.s_show_state,
       });
       this.$router.push({
         path: "/projects/75ea5a2e-e123-40df-a8c4-bf65386dba16/buildings",
@@ -109,6 +120,9 @@ export default {
 
   methods: {
     ...mapActions(["fetchAPIBuildings"]),
+    handleClearFilter() {
+      this.selectedFilter = "";
+    },
   },
 };
 </script>

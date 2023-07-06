@@ -7,6 +7,7 @@ const state = {
   selectedBuilding: [],
   infoBuilding: {},
   loading: true,
+  search: "",
 };
 
 const getters = {
@@ -19,6 +20,12 @@ const getters = {
   getSelectedBuilding: (state) => {
     return state.selectedBuilding;
   },
+  getSelectedBuildingIds: (state) => {
+    return state.selectedBuilding.map((item) => item.id);
+  },
+  getQuantitySelectedBuilding: (state) => {
+    return state.selectedBuilding.length;
+  },
   getSelectedBuildingLength: (state) => {
     return state.selectedBuilding.length;
   },
@@ -28,12 +35,12 @@ const getters = {
   getLoading: (state) => {
     return state.loading;
   },
+  getSearch: (state) => {
+    return state.search;
+  },
 };
 
 const mutations = {
-  setBuildingsFull: (state, payload) => {
-    state.buildingsFull = payload;
-  },
   setBuildings: (state, payload) => {
     state.buildings = payload;
   },
@@ -48,6 +55,9 @@ const mutations = {
   },
   setLoading: (state, payload) => {
     state.loading = payload;
+  },
+  setSearch: (state, payload) => {
+    state.search = payload;
   },
 };
 
@@ -66,7 +76,7 @@ const actions = {
                 : payload.sortBy
               : "name",
           project: "75ea5a2e-e123-40df-a8c4-bf65386dba16",
-          search: payload.search,
+          search: state.search,
           state: payload.state,
           building_type: payload.building_type,
         },

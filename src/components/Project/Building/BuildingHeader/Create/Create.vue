@@ -1,5 +1,10 @@
 <template>
-  <dialog-button :icon="icon" :tooltip="tooltip" :dialogClose="true">
+  <dialog-button
+    :icon="icon"
+    :tooltip="tooltip"
+    :handleClick="handleClick"
+    :dialogClose="true"
+  >
     <template v-slot:content>
       <v-divider></v-divider>
       <v-list class="create-edit-content">
@@ -11,8 +16,9 @@
           ></v-text-field>
           <v-select
             v-model="building.building_type"
-            :items="getBuildingTypes"
+            :items="s_building_type"
             :rules="rules.buildingType"
+            :loading="s_loading"
             label="Building Type*"
           ></v-select>
           <v-text-field label="Building ID"></v-text-field>
@@ -72,7 +78,6 @@
 import country from "@/mixins/country";
 import { mapActions, mapGetters } from "vuex";
 import DialogButton from "@/components/Dialogs/DialogButton.vue";
-import PrimaryButton from "@/components/buttons/PrimaryButton.vue";
 import axios from "axios";
 
 export default {
@@ -114,13 +119,16 @@ export default {
       type: String,
       required: true,
     },
+    handleClick: {
+      type: Function,
+      required: true,
+    },
   },
 
   mixins: [country],
 
   components: {
     DialogButton,
-    PrimaryButton,
   },
 
   watch: {
@@ -133,11 +141,15 @@ export default {
   },
 
   computed: {
-    ...mapGetters(["getBuildingTypes", "getSelectedBuildingLength"]),
+    ...mapGetters({
+      s_building_type: "getBuildingTypes",
+      s_show_state: "getShowStateBuilding",
+      s_loading: "getBuildingTypesLoading",
+    }),
   },
 
   methods: {
-    ...mapActions(["fetchAPIBuildings", "fetchAPIBuildingTypes"]),
+    ...mapActions(["fetchAPIBuildings"]),
 
     async handleCreate() {
       this.rules.buildingName = [(v) => !!v || "This field is required"];
@@ -174,6 +186,7 @@ export default {
             sortBy: query.sortBy || "name",
             desc: query.desc || false,
             building_type: query.building_type || "",
+            state: this.s_show_state,
           });
         } catch (err) {
           console.log(err);
@@ -184,10 +197,6 @@ export default {
       this.handleCreate();
       onClose();
     },
-  },
-
-  mounted() {
-    this.fetchAPIBuildingTypes();
   },
 };
 </script>

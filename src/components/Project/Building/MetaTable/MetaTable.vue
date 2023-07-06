@@ -3,17 +3,17 @@
     <meta-item
       icon="mdi-music-accidental-sharp"
       lable="Total Building Quantity: "
-      :data="getMetaBuildings.total_active_quantity + ' Building'"
+      :data="meta.total_active_quantity + ' Building'"
     />
     <meta-item
       icon="mdi-currency-usd"
       lable="Total Cost: "
-      :data="'$' + getMetaBuildings.total_skup_extended_cost?.toFixed(2)"
+      :data="'$' + meta.total_skup_extended_cost?.toFixed(2)"
     />
     <meta-item
       icon="mdi-memory"
       lable="Total Area: "
-      :data="getMetaBuildings.total_room_area + ' sq ft'"
+      :data="meta.total_room_area + ' sq ft'"
     />
 
     <v-tooltip top>
@@ -36,7 +36,9 @@ export default {
   },
 
   computed: {
-    ...mapGetters(["getMetaBuildings"]),
+    ...mapGetters({
+      meta: "getMetaBuildings",
+    }),
   },
 };
 </script>

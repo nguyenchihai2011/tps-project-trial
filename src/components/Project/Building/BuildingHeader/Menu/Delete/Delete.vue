@@ -10,7 +10,7 @@
           height="48px"
           color="rgba(0,0,0,0.6)"
           min-width="100%"
-          :disabled="getSelectedBuildingLength < 1"
+          :disabled="s_quantity_selected_building < 1"
         >
           <v-list-item-icon>
             <v-icon>mdi-delete</v-icon>
@@ -73,21 +73,24 @@ export default {
   inject: ["getSnackbar", "setSnackbar"],
 
   computed: {
-    ...mapGetters(["getSelectedBuilding", "getSelectedBuildingLength"]),
+    ...mapGetters({
+      s_selected_building: "getSelectedBuilding",
+      s_selected_building_ids: "getSelectedBuildingIds",
+      s_quantity_selected_building: "getQuantitySelectedBuilding",
+      s_show_state: "getShowStateBuilding",
+    }),
   },
 
   methods: {
-    ...mapMutations(["setSelectedBuilding", "setRefreshDataTable"]),
-    ...mapActions([
-      "fetchAPIBuildingsColumns",
-      "fetchAPIBuildings",
-      "fetchAPITableSettings",
-    ]),
+    ...mapMutations(["setSelectedBuilding"]),
+    ...mapActions(["fetchAPIBuildings", "fetchAPITableSettings"]),
     async handleDelete() {
       const response = await axios.delete(
         "/api/buildings/bulk/",
         {
-          data: { ids: this.getSelectedBuilding },
+          data: {
+            ids: this.s_selected_building_ids,
+          },
         },
         {
           headers: {
@@ -103,7 +106,7 @@ export default {
         5000
       );
       this.setSelectedBuilding([]);
-      this.fetchAPIBuildingsColumns();
+      this.fetchAPITableSettings();
       const query = this.$route.query;
       this.fetchAPIBuildings({
         page: query.page,
@@ -111,8 +114,9 @@ export default {
         sortBy: query.sortBy,
         desc: query.desc,
         building_type: query.building_type,
+        state: this.s_show_state,
       });
-      this.fetchAPITableSettings();
+
       this.dialogDelete = false;
     },
 
@@ -121,7 +125,7 @@ export default {
         "/api/buildings/bulk/",
         {
           change_note: null,
-          ids: this.getSelectedBuilding,
+          ids: this.s_selected_building_ids,
           project_ids: "75ea5a2e-e123-40df-a8c4-bf65386dba16",
           state: "REDACTED",
         },
@@ -139,7 +143,7 @@ export default {
       );
       this.dialogDelete = false;
       this.setSelectedBuilding([]);
-      this.fetchAPIBuildingsColumns();
+      this.fetchAPITableSettings();
       const query = this.$route.query;
       this.fetchAPIBuildings({
         page: query.page,
@@ -147,8 +151,8 @@ export default {
         sortBy: query.sortBy,
         desc: query.desc,
         building_type: query.building_type,
+        state: this.s_show_state,
       });
-      this.fetchAPITableSettings();
     },
   },
 };

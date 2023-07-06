@@ -5,7 +5,7 @@
         class="building__button"
         v-bind="{ ...attrs, attrsTooltip }"
         v-on="{ ...on, ...onTooltip }"
-        @click="handleEdit()"
+        @click="handleClick()"
         :disabled="disabled"
         depressed
         fab
@@ -43,11 +43,12 @@ export default {
       type: Boolean,
       default: false,
     },
-    handleEdit: {
+    handleClick: {
       type: Function,
       default: () => {},
       required: false,
     },
+
     badge: {
       type: Boolean,
       default: false,
