@@ -20,23 +20,6 @@
       <v-list-item class="d-block">
         <menu-comment></menu-comment>
         <menu-copy></menu-copy>
-
-        <div>
-          <v-btn
-            text
-            class="px-0 text-capitalize"
-            height="48px"
-            color="rgba(0,0,0,0.6)"
-          >
-            <v-list-item-icon>
-              <v-icon>mdi-arrow-down-bold-box-outline</v-icon>
-            </v-list-item-icon>
-            <v-list-item-content>
-              <v-list-item-title>Copy to Destination</v-list-item-title>
-            </v-list-item-content>
-          </v-btn>
-        </div>
-
         <menu-delete></menu-delete>
       </v-list-item>
     </v-list>
@@ -47,7 +30,7 @@
 import MenuComment from "./Comment/Comment.vue";
 import MenuCopy from "./Copy/Copy.vue";
 import MenuDelete from "./Delete/Delete.vue";
-import IconButton from "@/components/buttons/IconButton.vue";
+import IconButton from "@/components/Buttons/IconButton.vue";
 
 export default {
   data() {

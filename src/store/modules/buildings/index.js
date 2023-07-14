@@ -1,5 +1,4 @@
-import axios from "axios";
-import qs from "qs";
+import projectBuildings from "@/requestHttp/projectBuildings";
 
 const state = {
   buildings: [],
@@ -65,8 +64,8 @@ const actions = {
   fetchAPIBuildings: async ({ commit }, payload) => {
     try {
       commit("setLoading", true);
-      const response = await axios.get("/api/buildings/", {
-        params: {
+      const buildings = await projectBuildings.getBuildings(
+        {
           page_size: payload.page_size || 50,
           page: payload.page || 1,
           sort:
@@ -80,17 +79,14 @@ const actions = {
           state: payload.state,
           building_type: payload.building_type,
         },
-        paramsSerializer: (params) => {
-          return qs.stringify(params, { arrayFormat: "repeat" });
-        },
-        signal: payload.signal,
-      });
+        payload.signal
+      );
 
-      const data = response.data.results.map((item) => {
+      const data = buildings.results.map((item) => {
         return { ...item, building_type: item.building_type?.option_name };
       });
       commit("setBuildings", data);
-      commit("setMetaBuilding", response.data.meta);
+      commit("setMetaBuilding", buildings.meta);
       commit("setLoading", false);
     } catch (error) {
       console.log(error);

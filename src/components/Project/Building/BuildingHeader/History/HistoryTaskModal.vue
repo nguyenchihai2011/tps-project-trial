@@ -13,7 +13,7 @@
 </template>
 
 <script>
-import IconButton from "@/components/buttons/IconButton.vue";
+import IconButton from "@/components/Buttons/IconButton.vue";
 export default {
   data() {
     return {

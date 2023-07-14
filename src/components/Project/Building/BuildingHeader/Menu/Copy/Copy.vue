@@ -46,8 +46,8 @@
 </template>
 
 <script>
-import axios from "axios";
 import { mapGetters, mapMutations, mapActions } from "vuex";
+import projectBuildings from "@/requestHttp/projectBuildings";
 
 export default {
   data() {
@@ -73,12 +73,11 @@ export default {
 
     async handleCopy() {
       try {
-        const response = await axios.post("/api/buildings/copy", {
-          actions: this.s_selected_building_ids.map((building) => {
-            return { building };
-          }),
-          changeNote: null,
+        const actions = this.s_selected_building_ids.map((building) => {
+          return { building };
         });
+        await projectBuildings.copyBuilding({ actions, changeNote: null });
+
         this.setSnackbar(
           true,
           "Successful! Your buildings has been copied.",

@@ -1,4 +1,5 @@
 import axios from "axios";
+import tableSettingAPI from "@/requestHttp/tableSetting";
 
 const state = {
   tableSettings: {},
@@ -50,7 +51,7 @@ const getters = {
       ...state.settings,
     ];
     return settingArr.map((setting, index) => {
-      if (setting.name === undefined) {
+      if (setting.name === "") {
         setting.name = "Custom" + index;
       }
       return {
@@ -80,6 +81,9 @@ const getters = {
       ...state.settingsCopy,
     ];
     return settingArr.map((setting, index) => {
+      if (setting.name === "") {
+        setting.name = "Custom" + index;
+      }
       return {
         id: index,
         ...setting,
@@ -121,10 +125,11 @@ const mutations = {
 const actions = {
   fetchAPITableSettings: async ({ commit }) => {
     try {
-      const response = await axios.get(
-        "/api/org-members/63c7f081-ef87-4421-bc5e-ca4a9b891b6b/preferences/buildingsColumns/"
-      );
-      const data = response.data.value;
+      const tableSetting = await tableSettingAPI.getTableSetting();
+      // const response = await axios.get(
+      //   "/api/org-members/63c7f081-ef87-4421-bc5e-ca4a9b891b6b/preferences/buildingsColumns/"
+      // );
+      const data = tableSetting.value;
       commit("setTableSettings", data);
       commit("setSettings", data.table_settings);
       commit("setSettingsCopy", data.table_settings);

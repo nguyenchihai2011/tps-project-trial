@@ -60,8 +60,8 @@
 </template>
 
 <script>
-import axios from "axios";
 import { mapGetters, mapMutations, mapActions } from "vuex";
+import projectBuildings from "@/requestHttp/projectBuildings";
 
 export default {
   data() {
@@ -85,74 +85,65 @@ export default {
     ...mapMutations(["setSelectedBuilding"]),
     ...mapActions(["fetchAPIBuildings", "fetchAPITableSettings"]),
     async handleDelete() {
-      const response = await axios.delete(
-        "/api/buildings/bulk/",
-        {
+      try {
+        await projectBuildings.deleteBuilding({
           data: {
             ids: this.s_selected_building_ids,
           },
-        },
-        {
-          headers: {
-            "x-camelcase": 1,
-          },
-        }
-      );
+        });
+        this.setSnackbar(
+          true,
+          "Successful! Your buildings has been deleted.",
+          "success",
+          5000
+        );
+        this.setSelectedBuilding([]);
+        this.fetchAPITableSettings();
+        const query = this.$route.query;
+        this.fetchAPIBuildings({
+          page: query.page,
+          page_size: query.pageSize,
+          sortBy: query.sortBy,
+          desc: query.desc,
+          building_type: query.building_type,
+          state: this.s_show_state,
+        });
 
-      this.setSnackbar(
-        true,
-        "Successful! Your buildings has been deleted.",
-        "success",
-        5000
-      );
-      this.setSelectedBuilding([]);
-      this.fetchAPITableSettings();
-      const query = this.$route.query;
-      this.fetchAPIBuildings({
-        page: query.page,
-        page_size: query.pageSize,
-        sortBy: query.sortBy,
-        desc: query.desc,
-        building_type: query.building_type,
-        state: this.s_show_state,
-      });
-
-      this.dialogDelete = false;
+        this.dialogDelete = false;
+      } catch (err) {
+        console(err);
+      }
     },
 
     async handleRedacted() {
-      const response = await axios.patch(
-        "/api/buildings/bulk/",
-        {
+      try {
+        await projectBuildings.redactedBuilding({
           change_note: null,
           ids: this.s_selected_building_ids,
           project_ids: "75ea5a2e-e123-40df-a8c4-bf65386dba16",
           state: "REDACTED",
-        },
-        {
-          headers: {
-            "x-camelcase": 1,
-          },
-        }
-      );
-      this.setSnackbar(
-        true,
-        "Successful! Your buildings has been redacted.",
-        "success",
-        5000
-      );
-      this.dialogDelete = false;
-      this.setSelectedBuilding([]);
-      this.fetchAPITableSettings();
-      const query = this.$route.query;
-      this.fetchAPIBuildings({
-        page: query.page,
-        page_size: query.pageSize,
-        sortBy: query.sortBy,
-        desc: query.desc,
-        building_type: query.building_type,
-        state: this.s_show_state,
-      });
+        });
+        this.setSnackbar(
+          true,
+          "Successful! Your buildings has been redacted.",
+          "success",
+          5000
+        );
+        this.dialogDelete = false;
+        this.setSelectedBuilding([]);
+        this.fetchAPITableSettings();
+        const query = this.$route.query;
+        this.fetchAPIBuildings({
+          page: query.page,
+          page_size: query.pageSize,
+          sortBy: query.sortBy,
+          desc: query.desc,
+          building_type: query.building_type,
+          state: this.s_show_state,
+        });
+      } catch (err) {
+        console.log(err);
+      }
     },
   },
 };

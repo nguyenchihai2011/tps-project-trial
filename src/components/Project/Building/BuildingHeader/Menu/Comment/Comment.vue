@@ -35,7 +35,7 @@
         <v-card
           v-for="comment in s_comments"
           :key="comment.id"
-          class="d-flex justify-space-between px-7 py-9 mb-5"
+          class="d-flex justify-space-between px-4 py-9 mb-5"
         >
           <div class="d-flex">
             <v-avatar color="rgb(225, 6, 0)" size="48">
@@ -52,10 +52,15 @@
                   name="input-7-1"
                   label="Change this comment..."
                   v-model="comment.text"
-                  @keyup.enter="handleEditComment()"
+                  @keyup.enter="handleEditComment(comment)"
                   hint="Press Enter to save this comment"
                 ></v-textarea>
-                <span v-else>{{ comment.text }} <span>(edited)</span></span>
+                <span v-else
+                  >{{ comment.text }}
+                  <span v-if="isEditedComment(comment)" class="text-caption"
+                    >(edited)</span
+                  ></span
+                >
               </div>
               <div>
                 <span>{{ comment.modified_at | transformDate }}</span>
@@ -79,6 +84,7 @@
               top
               elevation="0"
               timeout="-1"
+              class="mt-10"
             >
               Are you sure you want to delete this comment?
               <template v-slot:action="{ attrs }">
@@ -119,7 +125,8 @@
 
 <script>
 import { mapActions, mapGetters, mapMutations } from "vuex";
-import axios from "axios";
+import menuComments from "@/requestHttp/menuComments";
+
 export default {
   data() {
     return {
@@ -171,26 +178,30 @@ export default {
       "fetchAPIComments",
     ]),
 
+    isEditedComment(comment) {
+      const created_at = new Date(comment.created_at);
+
+      const modified_at = new Date(comment.modified_at);
+
+      return created_at.toISOString() !== modified_at.toISOString();
+    },
+
     async handleSubmitComment() {
       try {
-        const response = await axios.post("/api/comments/", {
+        await menuComments.createComment({
           content_type: "building",
           object_id: this.s_selected_building_ids[0],
           text: this.textContent,
         });
-        this.textContent = "";
-        this.setSelectedBuilding([]);
-        this.fetchAPITableSettings();
-        const query = this.$route.query;
-        this.fetchAPIBuildings({
-          page: query.page,
-          page_size: query.pageSize,
-          sortBy: query.sortBy,
-          desc: query.desc,
-          building_type: query.building_type,
-          state: this.s_show_state,
+        this.fetchAPIComments({
+          content_type: "building",
+          object_id: this.s_selected_building_ids[0],
+          page_size: 25,
+          page: 1,
+          fields:
+            "id,created_by.email,created_by.first_name,created_by.last_name,text,modified_at,created_at,modified_by.user_id",
         });
-        this.dialogComment = false;
+        this.textContent = "";
       } catch (err) {
         console.log(err);
       }
@@ -209,6 +220,7 @@ export default {
         building_type: query.building_type,
         state: this.s_show_state,
       });
+      this.isEditComment = false;
       this.dialogComment = false;
     },
 
@@ -217,13 +229,37 @@ export default {
       this.isEditComment = true;
     },
 
-    handleEditComment() {},
+    async handleEditComment(comment) {
+      let currentDate = new Date();
+      try {
+        await menuComments.updateComment(comment.id, {
+          id: comment.id,
+          created_at: comment.created_at,
+          created_by: comment.created_by,
+          modified_at: currentDate.toISOString(),
+          modified_by: {
+            id: localStorage.getItem("userId"),
+            user_id: localStorage.getItem("orgMemberId"),
+          },
+          text: comment.text,
+        });
+        this.fetchAPIComments({
+          content_type: "building",
+          object_id: this.s_selected_building_ids[0],
+          page_size: 25,
+          page: 1,
+          fields:
+            "id,created_by.email,created_by.first_name,created_by.last_name,text,modified_at,created_at,modified_by.user_id",
+        });
+        this.isEditComment = false;
+      } catch (err) {
+        console.log(err);
+      }
+    },
 
     async handleDeleteComment(idCommentDelete) {
       try {
-        const response = await axios.delete(
-          `/api/comments/${idCommentDelete}/`
-        );
+        await menuComments.deleteComment(idCommentDelete);
         this.fetchAPIComments({
           content_type: "building",
           object_id: this.s_selected_building_ids[0],
@@ -240,10 +276,3 @@ export default {
   },
 };
 </script>
-
-<style>
-.v-snack__wrapper {
-  top: 40px;
-  height: 64px;
-}
-</style>

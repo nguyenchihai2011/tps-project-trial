@@ -12,14 +12,14 @@
         <v-form ref="entryForm">
           <v-text-field
             v-model="building.name"
-            :rules="rules.buildingName"
+            :rules="rules.required"
             label="Name*"
           ></v-text-field>
           <v-select
             v-model="building.building_type"
             :items="s_building_type"
             :loading="s_loading"
-            :rules="rules.buildingType"
+            :rules="rules.required"
             label="Building Type*"
           ></v-select>
           <v-text-field
@@ -54,15 +54,22 @@
     <template v-slot:default="{ onClose }">
       <v-container class="px-0">
         <v-row>
-          <v-col lg="6" class="pr-1"
-            ><v-btn
-              class="text-capitalize"
-              color="primary"
-              outlined
-              min-width="100%"
-              >Cancel</v-btn
-            ></v-col
-          >
+          <v-col lg="6" class="pr-1">
+            <dialog-confirm-unsave @update:close="onClose()">
+              <template v-slot:button="{ attrs, on }">
+                <v-btn
+                  class="text-capitalize"
+                  color="primary"
+                  outlined
+                  min-width="100%"
+                  v-bind="attrs"
+                  v-on="on"
+                >
+                  Cancel
+                </v-btn>
+              </template>
+            </dialog-confirm-unsave>
+          </v-col>
           <v-col lg="6" class="pl-1">
             <v-btn
               class="text-capitalize"
@@ -82,9 +89,8 @@
 import country from "@/mixins/country";
 import { mapActions, mapGetters, mapMutations } from "vuex";
 import DialogButton from "@/components/Dialogs/DialogButton.vue";
-import PrimaryButton from "@/components/buttons/PrimaryButton.vue";
-import axios from "axios";
-
+import DialogConfirmUnsave from "@/components/Dialogs/DialogConfirmUnsave.vue";
+import projectBuilding from "@/requestHttp/projectBuildings";
 export default {
   data() {
     return {
@@ -96,8 +102,7 @@ export default {
 
       building: {},
       rules: {
-        buildingName: [],
-        buildingType: [],
+        required: [],
       },
     };
   },
@@ -124,17 +129,10 @@ export default {
 
   components: {
     DialogButton,
-    PrimaryButton,
+    DialogConfirmUnsave,
   },
 
   watch: {
-    "building.name"(val) {
-      this.rules.buildingName = [];
-    },
-    "building.refId"(val) {
-      this.rules.buildingType = [];
-    },
-
     s_info_building(newValue) {
       this.building = newValue;
     },
@@ -154,22 +152,12 @@ export default {
     ...mapActions(["fetchAPIBuildings"]),
 
     async handleEditBuilding(onClose) {
-      this.rules.buildingName = [(v) => !!v || "This field is required"];
-      this.rules.buildingType = [(v) => !!v || "This field is required"];
+      this.rules.required = [(value) => !!value || "This field is required"];
 
       if (this.$refs.entryForm.validate()) {
         try {
-          const response = await axios.patch(
-            `/api/buildings/${this.building.id}`,
-            this.building,
-            {
-              headers: {
-                "x-camelcase": 1,
-              },
-            }
-          );
-          this.rules.buildingName = [];
-          this.rules.buildingType = [];
+          await projectBuilding.updateBuilding(this.building.id, this.building);
+          this.rules.required = [];
           this.setSelectedBuilding([]);
           const query = this.$route.query;
           this.fetchAPIBuildings({

@@ -38,11 +38,10 @@ export default {
       // Tạo mới AbortController
       this.controller = new AbortController();
       this.setSearch(newValue);
-      console.log("search:", this.s_show_state);
       this.fetchAPIBuildings({
         page: this.$route.query.page,
         page_size: this.$route.query.pageSize,
-        sortBy: "name",
+        sortBy: this.$route.query.sortBy,
         building_type: this.$route.query.building_type,
         state: this.s_show_state,
         signal: this.controller.signal,

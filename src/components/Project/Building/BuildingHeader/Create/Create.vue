@@ -11,13 +11,13 @@
         <v-form ref="entryForm">
           <v-text-field
             v-model="building.name"
-            :rules="rules.buildingName"
+            :rules="rules.required"
             label="Name*"
           ></v-text-field>
           <v-select
             v-model="building.building_type"
             :items="s_building_type"
-            :rules="rules.buildingType"
+            :rules="rules.required"
             :loading="s_loading"
             label="Building Type*"
           ></v-select>
@@ -78,7 +78,7 @@
 import country from "@/mixins/country";
 import { mapActions, mapGetters } from "vuex";
 import DialogButton from "@/components/Dialogs/DialogButton.vue";
-import axios from "axios";
+import projectBuildings from "@/requestHttp/projectBuildings";
 
 export default {
   data() {
@@ -105,8 +105,7 @@ export default {
         notes: "",
       },
       rules: {
-        buildingName: [],
-        buildingType: [],
+        required: [],
       },
     };
   },
@@ -131,15 +130,6 @@ export default {
     DialogButton,
   },
 
-  watch: {
-    "building.name"(val) {
-      this.rules.buildingName = [];
-    },
-    "building.refId"(val) {
-      this.rules.buildingType = [];
-    },
-  },
-
   computed: {
     ...mapGetters({
       s_building_type: "getBuildingTypes",
@@ -152,16 +142,11 @@ export default {
     ...mapActions(["fetchAPIBuildings"]),
 
     async handleCreate() {
-      this.rules.buildingName = [(v) => !!v || "This field is required"];
-      this.rules.buildingType = [(v) => !!v || "This field is required"];
+      this.rules.required = [(value) => !!value || "This field is required"];
 
       if (this.$refs.entryForm.validate()) {
         try {
-          const response = await axios.post("/api/buildings/", this.building, {
-            headers: {
-              "x-camelcase": 1,
-            },
-          });
+          await projectBuildings.createBuilding(this.building);
           this.building = {
             id: "",
             project_id: "75ea5a2e-e123-40df-a8c4-bf65386dba16",
@@ -177,8 +162,7 @@ export default {
             state: "ACTIVE",
             notes: "",
           };
-          this.rules.buildingName = [];
-          this.rules.buildingType = [];
+          this.rules.required = [];
           const query = this.$route.query;
           this.fetchAPIBuildings({
             page: query.page || 1,
@@ -193,9 +177,11 @@ export default {
         }
       }
     },
-    handleCreateAndClose(onClose) {
-      this.handleCreate();
-      onClose();
+    async handleCreateAndClose(onClose) {
+      await this.handleCreate();
+      if (this.rules.required.length === 0) {
+        onClose();
+      }
     },
   },
 };

@@ -2,10 +2,10 @@
   <v-card class="building__header" :outlined="false">
     <v-card-title>Buildings</v-card-title>
     <v-spacer></v-spacer>
-    <history-task-modal
+    <!-- <history-task-modal
       icon="mdi-checkbox-marked-circle"
       tooltip="There are currently no running building tasks."
-    />
+    /> -->
     <search />
     <div class="d-flex align-center">
       <create
@@ -35,7 +35,7 @@ import TableSettings from "./TableSettings/TableSettings.vue";
 import MenuBuilding from "./Menu/Menu.vue";
 import HistoryTaskModal from "./History/HistoryTaskModal.vue";
 import { mapGetters, mapMutations, mapActions } from "vuex";
-import axios from "axios";
+import projectBuildings from "@/requestHttp/projectBuildings";
 
 export default {
   components: {
@@ -62,12 +62,16 @@ export default {
       this.fetchAPIBuildingTypes();
     },
     async handleEdit() {
-      const response = await axios.get(
-        `/api/buildings/${s_selected_building_ids[0]}/`
-      );
-      response.data.building_type = response.data.building_type.id;
-      this.setInfoBuilding(response.data);
-      this.fetchAPIBuildingTypes();
+      try {
+        let building = await projectBuildings.getSingleBuilding(
+          this.s_selected_building_ids[0]
+        );
+        building.building_type = building.building_type.id;
+        this.setInfoBuilding(building);
+        this.fetchAPIBuildingTypes();
+      } catch (err) {
+        console.log(err);
+      }
     },
   },
 };

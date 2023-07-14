@@ -170,9 +170,9 @@
 
 <script>
 import { mapActions, mapGetters, mapMutations } from "vuex";
-import axios from "axios";
 import columns from "@/mixins/columns.js";
 import tableSetting from "@/requestHttp/tableSetting";
+import projectBuildings from "@/requestHttp/projectBuildings";
 export default {
   data() {
     return {
@@ -297,13 +297,9 @@ export default {
         });
       }
     },
-    async handlePagination(pagination) {
-      try {
-        this.pagination.page = pagination.page;
-        this.pagination.itemsPerPage = pagination.itemsPerPage;
-      } catch (error) {
-        console.log(error);
-      }
+    handlePagination(pagination) {
+      this.pagination.page = pagination.page;
+      this.pagination.itemsPerPage = pagination.itemsPerPage;
     },
 
     handleScroll(event) {
@@ -326,15 +322,10 @@ export default {
     async handleSaveData(item) {
       if (item.ref_id !== this.ref_id) {
         try {
-          const response = await axios.patch(
-            `/api/buildings/${item.id}`,
-            { ref_id: item.ref_id },
-            {
-              headers: {
-                "x-camelcase": 1,
-              },
-            }
-          );
+          await projectBuildings.updateBuilding(item.id, {
+            ref_id: item.ref_id,
+          });
+
           this.selectedBuildingType = "";
           const query = this.$route.query;
           this.fetchAPIBuildings({
@@ -356,23 +347,17 @@ export default {
         }
       } else if (this.selectedBuildingType) {
         try {
-          const response = await axios.patch(
-            `/api/buildings/${item.id}`,
-            { building_type: this.selectedBuildingType },
-            {
-              headers: {
-                "x-camelcase": 1,
-              },
-            }
-          );
+          await projectBuildings.updateBuilding(item.id, {
+            building_type: this.selectedBuildingType,
+          });
           this.selectedBuildingType = "";
           const query = this.$route.query;
           this.fetchAPIBuildings({
-            page: query.page || 1,
-            page_size: query.pageSize || 50,
-            sortBy: query.sortBy || "name",
-            desc: query.desc || false,
-            building_type: query.building_type || "",
+            page: query.page,
+            page_size: query.pageSize,
+            sortBy: query.sortBy,
+            desc: query.desc,
+            building_type: query.building_type,
             state: this.s_show_state,
           });
         } catch (err) {
@@ -450,7 +435,12 @@ export default {
         let table_settings = this.s_table_settings.table_settings;
         table_settings[this.s_table_settings.active_idx].column_sizes =
           column_sizes;
-        tableSetting.changeSetting(active_idx, table_settings);
+        tableSetting.updateSetting({
+          value: {
+            active_idx: active_idx,
+            table_settings: table_settings,
+          },
+        });
 
         this.resizeInfo.curCol = undefined;
         this.resizeInfo.pageX = undefined;
@@ -488,6 +478,19 @@ export default {
   updated() {
     const table = document.querySelector("table");
     const firstRow = table.rows[0];
+
+    for (var i = 2; i < firstRow.cells.length; i++) {
+      document
+        .querySelector(`.resize-table th:nth-child(${i})`)
+        .style.removeProperty("border-right");
+
+      const item_table = document.querySelectorAll(
+        `.resize-table tbody tr > td:nth-child(${i})`
+      );
+      item_table.forEach((element) => {
+        element.style.removeProperty("border-right");
+      });
+    }
 
     for (var i = 2; i <= this.s_selected_setting.fixed_number; i++) {
       let distanceLeft = 0;
@@ -529,9 +532,12 @@ export default {
 </script>
 
 <style>
-.v-data-table-header th.sortable.active {
+.v-data-table-header th.sortable.active,
+.v-data-table-header th.sortable.active .mdi-pencil::before,
+.v-data-table-header th.sortable.active .v-icon__svg {
   color: #017acd !important;
 }
+
 .building__table__header {
   display: flex;
   padding: 8px;
@@ -586,9 +592,6 @@ export default {
 
 .resize-handle:hover {
   background-color: #ddd;
-}
-
-.freeze-column {
 }
 
 .resize-table th:first-child,

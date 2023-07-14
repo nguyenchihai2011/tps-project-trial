@@ -236,7 +236,6 @@ import Vue from "vue";
 import isEqual from "lodash/isEqual";
 import DialogButton from "@/components/Dialogs/DialogButton.vue";
 import DialogRemoveSetting from "@/components/Dialogs/DialogRemoveSetting.vue";
-import PrimaryButton from "@/components/buttons/PrimaryButton.vue";
 import draggable from "vuedraggable";
 import columns from "@/mixins/columns";
 import { mapActions, mapGetters, mapMutations } from "vuex";
@@ -284,7 +283,6 @@ export default {
   components: {
     DialogRemoveSetting,
     DialogButton,
-    PrimaryButton,
     draggable,
   },
 
@@ -375,7 +373,12 @@ export default {
     async saveAndApply(onClose) {
       let active_idx = this.tableSetting.id - 1;
       let table_settings = this.s_table_settings.table_settings;
-      tableSettingAPI.changeSetting(active_idx, table_settings);
+      tableSettingAPI.updateSetting({
+        value: {
+          active_idx: active_idx,
+          table_settings: table_settings,
+        },
+      });
       await this.fetchAPITableSettings();
       this.setSearch("");
       const query = this.$route.query;
@@ -423,7 +426,12 @@ export default {
         ...this.s_table_settings.table_settings,
         this.tableSetting,
       ];
-      tableSettingAPI.changeSetting(active_idx, table_settings);
+      tableSettingAPI.updateSetting({
+        value: {
+          active_idx: active_idx,
+          table_settings: table_settings,
+        },
+      });
 
       Vue.set(
         this.tableSetting,
@@ -446,7 +454,12 @@ export default {
         ...this.s_table_settings.table_settings,
         this.tableSetting,
       ];
-      tableSettingAPI.changeSetting(active_idx, table_settings);
+      tableSettingAPI.updateSetting({
+        value: {
+          active_idx: active_idx,
+          table_settings: table_settings,
+        },
+      });
 
       Vue.set(
         this.tableSetting,
@@ -476,7 +489,12 @@ export default {
 
       let active_idx = this.tableSetting.id - 1;
       let table_settings = updateSettings;
-      tableSettingAPI.changeSetting(active_idx, table_settings);
+      tableSettingAPI.updateSetting({
+        value: {
+          active_idx: active_idx,
+          table_settings: table_settings,
+        },
+      });
 
       this.setSettings(table_settings);
       this.setSettingsCopy(table_settings);
@@ -496,9 +514,15 @@ export default {
         ...this.s_table_settings.table_settings,
         newSetting,
       ];
-      tableSettingAPI.changeSetting(active_idx, table_settings);
+      tableSettingAPI.updateSetting({
+        value: {
+          active_idx: active_idx,
+          table_settings: table_settings,
+        },
+      });
       this.isCreate = false;
       this.isUpdate = false;
+      this.isSaveAsNew = true;
       this.fetchAPITableSettings();
       onClose();
     },
@@ -512,15 +536,24 @@ export default {
     },
 
     handleChange(value) {
+      // Khi vừa thay đổi tên và blur ra ngoài
       if (typeof value === "string") {
         this.tableSetting = this.s_settings[this.currentID];
         this.tableSetting.name = value;
         this.tableSettings.splice(this.currentID, 1, this.tableSetting);
-        this.isSaveAsNew = false;
-      } else if (value.name !== this.s_settings_copy[value.id].name) {
+        if (value !== this.s_settings_copy[this.currentID].name) {
+          this.isSaveAsNew = false;
+        } else {
+          this.isSaveAsNew = true;
+        }
+      }
+      // Khi chuyển qua setting khác và chuyển ngược lại setting vừa thay đổi
+      else if (value.name !== this.s_settings_copy[value.id].name) {
         this.currentID = value.id;
         this.isSaveAsNew = false;
-      } else {
+      }
+      // Khi chuyển qua setting khác
+      else {
         this.currentID = value.id;
         this.isSaveAsNew = true;
       }

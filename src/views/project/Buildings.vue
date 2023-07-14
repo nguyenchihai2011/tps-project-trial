@@ -5,7 +5,12 @@
       <meta-table />
       <data-table />
 
-      <v-snackbar v-model="snackbar" :timeout="timeout" :color="color">
+      <v-snackbar
+        v-model="snackbar"
+        :timeout="timeout"
+        :color="color"
+        class="mb-16"
+      >
         {{ text }}
         <template v-slot:action="{ attrs }">
           <v-btn text v-bind="attrs" @click="snackbar = false">
@@ -53,9 +58,5 @@ export default {
 <style>
 .building__table {
   padding: 4px 16px 16px;
-}
-
-.v-snack__wrapper {
-  bottom: 50px;
 }
 </style>

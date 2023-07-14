@@ -23,35 +23,13 @@
         {{ tooltip }}
       </v-list-item-title>
       <v-spacer></v-spacer>
-      <v-dialog v-if="dialogClose" v-model="dialog1" persistent max-width="500">
-        <template v-slot:activator="{ on, attrs }">
-          <v-btn class="dialog__button" depressed fab v-bind="attrs" v-on="on">
+      <dialog-confirm-unsave v-if="dialogClose" @update:close="dialog = false">
+        <template v-slot:button="{ attrs, on }"
+          ><v-btn class="dialog__button" depressed fab v-bind="attrs" v-on="on">
             <v-icon>mdi-close</v-icon>
           </v-btn>
         </template>
-        <v-card>
-          <v-card-title class="text-h5"> Unsaved Changes </v-card-title>
-          <v-card-text
-            >You have unsaved changes, are you sure you want to
-            cancel?</v-card-text
-          >
-          <v-card-actions>
-            <v-spacer></v-spacer>
-
-            <primary-button
-              text="No, Return"
-              :onCreate="handleNo"
-              outlined
-            ></primary-button>
-
-            <primary-button
-              text="Yes, Cancel"
-              :onCreate="handleYes"
-              minWidth="180px"
-            ></primary-button>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
+      </dialog-confirm-unsave>
       <v-btn
         v-else
         class="dialog__button"
@@ -72,14 +50,13 @@
 </template>
 
 <script>
-import IconButton from "@/components/buttons/IconButton.vue";
-import PrimaryButton from "@/components/buttons/PrimaryButton.vue";
+import IconButton from "@/components/Buttons/IconButton.vue";
+import DialogConfirmUnsave from "./DialogConfirmUnsave.vue";
 import { mapActions } from "vuex";
 export default {
   data() {
     return {
       dialog: false,
-      dialog1: false,
     };
   },
 
@@ -112,17 +89,12 @@ export default {
 
   components: {
     IconButton,
-    PrimaryButton,
+    DialogConfirmUnsave,
   },
 
   methods: {
     ...mapActions(["fetchAPITableSettings"]),
-    handleNo() {
-      this.dialog1 = false;
-    },
-    handleYes() {
-      this.dialog = false;
-    },
+
     onClose() {
       this.dialog = false;
     },

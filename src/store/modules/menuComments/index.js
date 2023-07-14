@@ -1,4 +1,4 @@
-import axios from "axios";
+import menuComments from "@/requestHttp/menuComments";
 
 const state = {
   comments: [],
@@ -19,16 +19,14 @@ const mutations = {
 const actions = {
   fetchAPIComments: async ({ commit }, payload) => {
     try {
-      const response = await axios.get("/api/comments/", {
-        params: {
-          content_type: payload.content_type,
-          object_id: payload.object_id,
-          page_size: payload.page_size,
-          page: payload.page,
-          fields: payload.fields,
-        },
+      const comments = await menuComments.getComments({
+        content_type: payload.content_type,
+        object_id: payload.object_id,
+        page_size: payload.page_size,
+        page: payload.page,
+        fields: payload.fields,
       });
-      commit("setComments", response.data.results);
+      commit("setComments", comments.results);
     } catch (err) {
       console.log(err);
     }
